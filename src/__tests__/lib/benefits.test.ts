@@ -42,4 +42,10 @@ describe('isExpiringSoon', () => {
   it('returns false if quarterly benefit not near end of quarter', () => {
     expect(isExpiringSoon('quarterly', new Date('2026-02-10'))).toBe(false)
   })
+  it('returns true if semi-annual benefit and month is June, day >= 20', () => {
+    expect(isExpiringSoon('semi-annual', new Date('2026-06-21'))).toBe(true)
+  })
+  it('returns false if semi-annual benefit and not near end of period', () => {
+    expect(isExpiringSoon('semi-annual', new Date('2026-03-15'))).toBe(false)
+  })
 })
