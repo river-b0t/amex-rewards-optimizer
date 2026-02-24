@@ -1,5 +1,6 @@
 import { BenefitCard } from '@/components/benefits/BenefitCard'
 import type { Benefit } from '@/components/benefits/BenefitCard'
+import { CSVUpload } from '@/components/benefits/CSVUpload'
 
 async function getBenefits(): Promise<Benefit[]> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -27,6 +28,9 @@ export default async function BenefitsPage() {
             <> · <span className="text-amber-600 font-medium">${(unenrolledValueCents / 100).toFixed(0)}/yr left on the table</span></>
           )}
         </p>
+        <div className="mt-4">
+          <CSVUpload onImported={() => {}} />
+        </div>
       </div>
 
       {unenrolled.length > 0 && (
