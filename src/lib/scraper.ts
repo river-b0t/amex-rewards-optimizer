@@ -48,16 +48,28 @@ function parseSpendMin(text: string): number | null {
 }
 
 function parseRewardAmount(text: string): number | null {
-  // "earn $X back" or "earn a $X statement credit"
-  const patterns = [
+  // Dollar-back patterns: "earn $X back" or "earn a $X statement credit"
+  const dollarPatterns = [
     /earn\s+(?:a\s+)?\$\s*([\d,]+(?:\.\d{1,2})?)\s*(?:statement\s+credit|back)/i,
     /\$\s*([\d,]+(?:\.\d{1,2})?)\s*(?:back|statement\s+credit)/i,
     /earn\s+\$\s*([\d,]+(?:\.\d{1,2})?)/i,
   ]
-  for (const pat of patterns) {
+  for (const pat of dollarPatterns) {
     const m = text.match(pat)
     if (m) return Math.round(parseFloat(m[1].replace(/,/g, '')) * 100)
   }
+
+  // Points patterns: "earn X,000 Membership Rewards® points" or "earn X bonus points"
+  // Store raw point count (e.g. 1000 pts → 1000); reward_type='points' distinguishes from cents
+  const pointsPatterns = [
+    /earn\s+([\d,]+)\s+(?:Membership Rewards®?\s+)?(?:bonus\s+)?points/i,
+    /earn\s+([\d,]+)\s+MR\s+points/i,
+  ]
+  for (const pat of pointsPatterns) {
+    const m = text.match(pat)
+    if (m) return parseInt(m[1].replace(/,/g, ''), 10)
+  }
+
   return null
 }
 
