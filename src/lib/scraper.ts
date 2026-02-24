@@ -83,9 +83,9 @@ function parseMerchant(strong: string): string {
   return strong.trim()
 }
 
-// The page has duplicate rows (verbose + short version of same offer). Use a Set to deduplicate.
+// Dedup key matches the DB unique constraint: (merchant, expiration_date, reward_amount_cents)
 function offerKey(o: ScrapedOffer): string {
-  return `${o.merchant}|${o.expiration_date}|${o.reward_amount_cents}|${o.spend_min_cents}`
+  return `${o.merchant}|${o.expiration_date}|${o.reward_amount_cents}`
 }
 
 // Extract the DataTables SSP ajax URL (with r+n tokens) from the page source.
