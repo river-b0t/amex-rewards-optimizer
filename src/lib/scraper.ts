@@ -136,15 +136,13 @@ function parseRow(col1Html: string, col2Date: string): ScrapedOffer | null {
   }
 }
 
-export async function scrapeFrequentMilerOffers(): Promise<ScrapedOffer[]> {
-  const sspBase = await getSSPUrl()
-  if (!sspBase) throw new Error('Failed to extract SSP URL from FrequentMiler page')
+const PAGE_SIZE = 300 // FM truncates JSON beyond ~400 rows; 300 is safe
 
-  // DataTables SSP params: get all records in one shot (length=2500 > deferLoading:2294)
+async function fetchSSPPage(sspBase: string, start: number, draw: number): Promise<{ data: [string, string][]; recordsTotal: number }> {
   const params = new URLSearchParams({
-    draw: '1',
-    start: '0',
-    length: '2500',
+    draw: String(draw),
+    start: String(start),
+    length: String(PAGE_SIZE),
     'search[value]': '',
     'search[regex]': 'false',
     'columns[0][data]': '0',
@@ -155,8 +153,7 @@ export async function scrapeFrequentMilerOffers(): Promise<ScrapedOffer[]> {
     'order[0][dir]': 'asc',
   })
 
-  const apiUrl = `${sspBase}&${params.toString()}`
-  const res = await fetch(apiUrl, {
+  const res = await fetch(`${sspBase}&${params.toString()}`, {
     headers: {
       'User-Agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -165,14 +162,29 @@ export async function scrapeFrequentMilerOffers(): Promise<ScrapedOffer[]> {
   })
 
   if (!res.ok) throw new Error(`SSP API returned HTTP ${res.status}`)
+  return res.json() as Promise<{ data: [string, string][]; recordsTotal: number }>
+}
 
-  const json = await res.json() as { data: [string, string][] }
-  const rows: [string, string][] = json.data ?? []
+export async function scrapeFrequentMilerOffers(): Promise<ScrapedOffer[]> {
+  const sspBase = await getSSPUrl()
+  if (!sspBase) throw new Error('Failed to extract SSP URL from FrequentMiler page')
 
   const offers: ScrapedOffer[] = []
   const seen = new Set<string>()
 
-  for (const [col1Html, col2Date] of rows) {
+  // Fetch first page to get total record count
+  const first = await fetchSSPPage(sspBase, 0, 1)
+  const total = first.recordsTotal ?? 0
+  const allRows: [string, string][] = [...(first.data ?? [])]
+
+  // Fetch remaining pages sequentially
+  let draw = 2
+  for (let start = PAGE_SIZE; start < total; start += PAGE_SIZE) {
+    const page = await fetchSSPPage(sspBase, start, draw++)
+    allRows.push(...(page.data ?? []))
+  }
+
+  for (const [col1Html, col2Date] of allRows) {
     const offer = parseRow(col1Html, col2Date)
     if (!offer || !offer.merchant || offer.reward_amount_cents === null) continue
 
