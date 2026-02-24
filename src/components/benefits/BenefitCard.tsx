@@ -36,22 +36,42 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function BenefitCard({ benefit: initial }: Props) {
   const [usedCents, setUsedCents] = useState(initial.used_cents)
-  const [loading, setLoading] = useState(false)
-  const benefit = { ...initial, used_cents: usedCents, remaining_cents: Math.max(0, initial.amount_cents - usedCents) }
+  const [enrolled, setEnrolled] = useState(initial.enrolled)
+  const [usageLoading, setUsageLoading] = useState(false)
+  const [enrollLoading, setEnrollLoading] = useState(false)
+
+  const benefit = {
+    ...initial,
+    enrolled,
+    used_cents: usedCents,
+    remaining_cents: Math.max(0, initial.amount_cents - usedCents),
+  }
   const pct = Math.min(100, Math.round((benefit.used_cents / benefit.amount_cents) * 100))
   const isFullyUsed = benefit.remaining_cents === 0
-  const needsEnrollment = !benefit.enrolled && benefit.enrollment_required
+  const needsEnrollment = !enrolled && benefit.enrollment_required
 
   async function markFullyUsed() {
     if (benefit.remaining_cents <= 0) return
-    setLoading(true)
+    setUsageLoading(true)
     await fetch('/api/benefits/usage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ benefit_id: benefit.id, amount_used_cents: benefit.remaining_cents }),
     })
     setUsedCents(initial.amount_cents)
-    setLoading(false)
+    setUsageLoading(false)
+  }
+
+  async function toggleEnrolled() {
+    setEnrollLoading(true)
+    const res = await fetch('/api/benefits/enroll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benefit_id: benefit.id }),
+    })
+    const data = await res.json()
+    setEnrolled(data.enrolled)
+    setEnrollLoading(false)
   }
 
   return (
@@ -91,22 +111,48 @@ export function BenefitCard({ benefit: initial }: Props) {
 
         <div className="flex gap-2 flex-wrap">
           {needsEnrollment ? (
-            <Button size="sm" className="text-xs bg-amber-500 hover:bg-amber-600" asChild>
-              <a href={benefit.enrollment_url ?? 'https://global.americanexpress.com/card-benefits/view-all'} target="_blank" rel="noopener noreferrer">
-                Enroll now →
-              </a>
-            </Button>
-          ) : benefit.enrolled && !isFullyUsed ? (
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              onClick={markFullyUsed}
-              disabled={loading}
-            >
-              {loading ? 'Saving...' : 'Mark fully used'}
-            </Button>
-          ) : null}
+            <>
+              <Button size="sm" className="text-xs bg-amber-500 hover:bg-amber-600" asChild>
+                <a href={benefit.enrollment_url ?? 'https://global.americanexpress.com/card-benefits/view-all'} target="_blank" rel="noopener noreferrer">
+                  Enroll now →
+                </a>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs"
+                onClick={toggleEnrolled}
+                disabled={enrollLoading}
+              >
+                {enrollLoading ? 'Saving...' : 'Mark as enrolled'}
+              </Button>
+            </>
+          ) : (
+            <>
+              {enrolled && !isFullyUsed && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={markFullyUsed}
+                  disabled={usageLoading}
+                >
+                  {usageLoading ? 'Saving...' : 'Mark fully used'}
+                </Button>
+              )}
+              {enrolled && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs text-muted-foreground"
+                  onClick={toggleEnrolled}
+                  disabled={enrollLoading}
+                >
+                  {enrollLoading ? '...' : 'Unenroll'}
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
