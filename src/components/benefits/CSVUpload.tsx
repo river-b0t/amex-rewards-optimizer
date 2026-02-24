@@ -21,7 +21,10 @@ export function CSVUpload({ onImported }: { onImported: (count: number) => void 
     const data = await res.json()
     setResult(data)
     setLoading(false)
-    if (data.imported > 0) onImported(data.imported)
+    if (data.imported > 0) {
+      onImported(data.imported)
+      setTimeout(() => window.location.reload(), 1500) // short delay so user sees the result
+    }
   }
 
   return (

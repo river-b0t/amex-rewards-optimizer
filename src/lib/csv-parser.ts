@@ -7,7 +7,7 @@ export type ParsedTransaction = {
 }
 
 export function parseAmexCSV(csv: string): ParsedTransaction[] {
-  const lines = csv.trim().split('\n')
+  const lines = csv.trim().split(/\r?\n/)
   const headers = lines[0].split(',').map((h) => h.replace(/"/g, '').trim())
 
   return lines.slice(1).map((line) => {
