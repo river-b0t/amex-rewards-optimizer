@@ -18,7 +18,7 @@ async function handleSync(req: NextRequest) {
   }
 
   try {
-    const offers = await scrapeFrequentMilerOffers(10)
+    const offers = await scrapeFrequentMilerOffers()
 
     if (offers.length === 0) {
       return NextResponse.json(

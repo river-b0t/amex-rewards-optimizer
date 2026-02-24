@@ -2,7 +2,7 @@ import { scrapeFrequentMilerOffers } from '../src/lib/scraper'
 
 async function main() {
   console.log('Scraping FrequentMiler...')
-  const offers = await scrapeFrequentMilerOffers(2)
+  const offers = await scrapeFrequentMilerOffers()
   console.log(`Found ${offers.length} offers`)
   console.log('Sample:', JSON.stringify(offers.slice(0, 3), null, 2))
 

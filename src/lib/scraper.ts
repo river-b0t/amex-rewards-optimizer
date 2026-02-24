@@ -88,93 +88,100 @@ function offerKey(o: ScrapedOffer): string {
   return `${o.merchant}|${o.expiration_date}|${o.reward_amount_cents}|${o.spend_min_cents}`
 }
 
-export async function scrapeFrequentMilerOffers(maxPages = 10): Promise<ScrapedOffer[]> {
-  const offers: ScrapedOffer[] = []
-  const seen = new Set<string>()
-  let url: string | null = 'https://frequentmiler.com/current-amex-offers/'
-  let page = 0
+// Extract the DataTables SSP ajax URL (with r+n tokens) from the page source.
+// The token is page-load-specific and must be fetched fresh each scrape run.
+async function getSSPUrl(): Promise<string | null> {
+  const res = await fetch('https://frequentmiler.com/current-amex-offers/', {
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml',
+    },
+  })
+  if (!res.ok) return null
 
-  while (url && page < maxPages) {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml',
-      },
-    })
+  const html = await res.text()
+  // Match the ajax URL from DataTable('#tablepress-8', { ... ajax:'URL' ... })
+  const match = html.match(/ajax:'(https:\/\/frequentmiler\.com\/wp-json\/tablepress\/v1\/ssp\/8[^']+)'/)
+  return match ? match[1] : null
+}
 
-    if (!res.ok) {
-      console.error(`HTTP ${res.status} fetching ${url}`)
-      break
-    }
+function parseRow(col1Html: string, col2Date: string): ScrapedOffer | null {
+  const $ = cheerio.load(col1Html)
 
-    const html = await res.text()
-    const $ = cheerio.load(html)
+  const strongText = $('strong').first().text().trim()
+  if (!strongText) return null
 
-    // Table rows: tr with class starting with "row-" inside .tablepress or inside .td-post-content
-    $('tr[class^="row-"]').each((_, el) => {
-      const col1 = $(el).find('td.column-1')
-      const col2 = $(el).find('td.column-2')
-      if (!col1.length) return
+  // Remove <details> (terms block) before extracting description text
+  $('details').remove()
+  const fullText = $.text().trim()
 
-      // Get the strong title (before description paragraph)
-      const strongText = col1.find('strong').first().text().trim()
-      if (!strongText) return
-
-      // Get the first text node / paragraph after <strong> — description
-      // Clone col1, remove details/summary/blockquote, get text
-      const col1Clone = col1.clone()
-      col1Clone.find('details').remove()
-      const fullText = col1Clone.text().trim()
-
-      // Expiration from col2 (YYYY-MM-DD) or fallback to parsing fullText
-      const expirationRaw = col2.text().trim()
-      const expiration_date = parseDate(expirationRaw) ?? parseDate(fullText)
-
-      const merchant = parseMerchant(strongText)
-      const description = fullText.replace(strongText, '').trim()
-
-      // Determine reward type
-      const reward_type = detectRewardType(strongText + ' ' + fullText)
-
-      // Parse spend min from description text
-      const spend_min_cents = parseSpendMin(fullText)
-
-      // Parse reward amount: try dollar amount first, then pct-back
-      let reward_amount_cents = parseRewardAmount(fullText)
-      if (reward_amount_cents === null) {
-        reward_amount_cents = parsePercentBack(fullText, spend_min_cents)
-      }
-
-      const offer: ScrapedOffer = {
-        merchant,
-        description: description.slice(0, 500), // cap length
-        spend_min_cents,
-        reward_amount_cents,
-        reward_type,
-        expiration_date,
-      }
-
-      const key = offerKey(offer)
-      if (!seen.has(key)) {
-        seen.add(key)
-        offers.push(offer)
-      }
-    })
-
-    // FrequentMiler's current-amex-offers page appears to be a single page (no pagination).
-    // Check for a "Next" page link anyway in case the site adds pagination later.
-    const nextLink =
-      $('a.next').attr('href') ??
-      $('a[rel="next"]').attr('href') ??
-      $('.page-numbers.next').attr('href') ??
-      null
-
-    url = nextLink ?? null
-    page++
+  const expiration_date = parseDate(col2Date) ?? parseDate(fullText)
+  const merchant = parseMerchant(strongText)
+  const description = fullText.replace(strongText, '').trim()
+  const reward_type = detectRewardType(strongText + ' ' + fullText)
+  const spend_min_cents = parseSpendMin(fullText)
+  let reward_amount_cents = parseRewardAmount(fullText)
+  if (reward_amount_cents === null) {
+    reward_amount_cents = parsePercentBack(fullText, spend_min_cents)
   }
 
-  // Keep offers that have a merchant name and either a dollar reward amount or a description
-  // (percent-back offers without a hard cap still have value in the description)
-  return offers.filter((o) => o.merchant && o.reward_amount_cents !== null)
+  return {
+    merchant,
+    description: description.slice(0, 500),
+    spend_min_cents,
+    reward_amount_cents,
+    reward_type,
+    expiration_date,
+  }
+}
+
+export async function scrapeFrequentMilerOffers(): Promise<ScrapedOffer[]> {
+  const sspBase = await getSSPUrl()
+  if (!sspBase) throw new Error('Failed to extract SSP URL from FrequentMiler page')
+
+  // DataTables SSP params: get all records in one shot (length=2500 > deferLoading:2294)
+  const params = new URLSearchParams({
+    draw: '1',
+    start: '0',
+    length: '2500',
+    'search[value]': '',
+    'search[regex]': 'false',
+    'columns[0][data]': '0',
+    'columns[0][searchable]': 'true',
+    'columns[1][data]': '1',
+    'columns[1][searchable]': 'true',
+    'order[0][column]': '1',
+    'order[0][dir]': 'asc',
+  })
+
+  const apiUrl = `${sspBase}&${params.toString()}`
+  const res = await fetch(apiUrl, {
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      Referer: 'https://frequentmiler.com/current-amex-offers/',
+    },
+  })
+
+  if (!res.ok) throw new Error(`SSP API returned HTTP ${res.status}`)
+
+  const json = await res.json() as { data: [string, string][] }
+  const rows: [string, string][] = json.data ?? []
+
+  const offers: ScrapedOffer[] = []
+  const seen = new Set<string>()
+
+  for (const [col1Html, col2Date] of rows) {
+    const offer = parseRow(col1Html, col2Date)
+    if (!offer || !offer.merchant || offer.reward_amount_cents === null) continue
+
+    const key = offerKey(offer)
+    if (!seen.has(key)) {
+      seen.add(key)
+      offers.push(offer)
+    }
+  }
+
+  return offers
 }
