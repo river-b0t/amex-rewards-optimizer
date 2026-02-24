@@ -176,5 +176,5 @@ export async function scrapeFrequentMilerOffers(maxPages = 10): Promise<ScrapedO
 
   // Keep offers that have a merchant name and either a dollar reward amount or a description
   // (percent-back offers without a hard cap still have value in the description)
-  return offers.filter((o) => o.merchant && (o.reward_amount_cents !== null || o.description))
+  return offers.filter((o) => o.merchant && o.reward_amount_cents !== null)
 }
