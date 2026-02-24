@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     .select('*, enrolled_offers(*)')
     .eq('active', true)
     .order('reward_amount_cents', { ascending: false })
+    .limit(5000)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

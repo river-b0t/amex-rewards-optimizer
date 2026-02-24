@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -20,7 +21,7 @@ export type Benefit = {
   remaining_cents: number
 }
 
-type Props = { benefit: Benefit; onMarkUsed: (id: string, amount: number) => void }
+type Props = { benefit: Benefit }
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(0)}`
 
@@ -33,10 +34,25 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: 'bg-gray-100 text-gray-800',
 }
 
-export function BenefitCard({ benefit, onMarkUsed }: Props) {
+export function BenefitCard({ benefit: initial }: Props) {
+  const [usedCents, setUsedCents] = useState(initial.used_cents)
+  const [loading, setLoading] = useState(false)
+  const benefit = { ...initial, used_cents: usedCents, remaining_cents: Math.max(0, initial.amount_cents - usedCents) }
   const pct = Math.min(100, Math.round((benefit.used_cents / benefit.amount_cents) * 100))
   const isFullyUsed = benefit.remaining_cents === 0
   const needsEnrollment = !benefit.enrolled && benefit.enrollment_required
+
+  async function markFullyUsed() {
+    if (benefit.remaining_cents <= 0) return
+    setLoading(true)
+    await fetch('/api/benefits/usage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benefit_id: benefit.id, amount_used_cents: benefit.remaining_cents }),
+    })
+    setUsedCents(initial.amount_cents)
+    setLoading(false)
+  }
 
   return (
     <Card className={needsEnrollment ? 'border-amber-400 bg-amber-50' : isFullyUsed ? 'border-green-400 bg-green-50' : ''}>
@@ -85,9 +101,10 @@ export function BenefitCard({ benefit, onMarkUsed }: Props) {
               size="sm"
               variant="outline"
               className="text-xs"
-              onClick={() => onMarkUsed(benefit.id, benefit.remaining_cents)}
+              onClick={markFullyUsed}
+              disabled={loading}
             >
-              Mark fully used
+              {loading ? 'Saving...' : 'Mark fully used'}
             </Button>
           ) : null}
         </div>

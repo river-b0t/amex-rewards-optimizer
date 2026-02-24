@@ -38,7 +38,7 @@ export default async function BenefitsPage() {
           <h2 className="text-lg font-semibold mb-3 text-amber-700">⚠ Needs Enrollment</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {unenrolled.map((b) => (
-              <BenefitCard key={b.id} benefit={b} onMarkUsed={() => {}} />
+              <BenefitCard key={b.id} benefit={b}  />
             ))}
           </div>
         </section>
@@ -48,7 +48,7 @@ export default async function BenefitsPage() {
         <h2 className="text-lg font-semibold mb-3">Active Benefits</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {enrolled.map((b) => (
-            <BenefitCard key={b.id} benefit={b} onMarkUsed={() => {}} />
+            <BenefitCard key={b.id} benefit={b}  />
           ))}
         </div>
       </section>
