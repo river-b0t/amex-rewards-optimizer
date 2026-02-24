@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
   }
 
   if (inserts.length > 0) {
-    await supabase.from('benefit_usage').insert(inserts)
+    const { error } = await supabase.from('benefit_usage').insert(inserts)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
   return NextResponse.json({ imported: matches.length, matches })

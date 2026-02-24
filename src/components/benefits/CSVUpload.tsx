@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 
-export function CSVUpload({ onImported }: { onImported: (count: number) => void }) {
+export function CSVUpload() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ imported: number; matches: { benefit_name: string; amount: number; date: string }[] } | null>(null)
 
@@ -12,18 +12,22 @@ export function CSVUpload({ onImported }: { onImported: (count: number) => void 
     if (!file) return
 
     setLoading(true)
-    const csv = await file.text()
-    const res = await fetch('/api/benefits/csv-import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ csv }),
-    })
-    const data = await res.json()
-    setResult(data)
-    setLoading(false)
-    if (data.imported > 0) {
-      onImported(data.imported)
-      setTimeout(() => window.location.reload(), 1500) // short delay so user sees the result
+    try {
+      const csv = await file.text()
+      const res = await fetch('/api/benefits/csv-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csv }),
+      })
+      const data = await res.json()
+      setResult(data)
+      if (data.imported > 0) {
+        setTimeout(() => window.location.reload(), 1500)
+      }
+    } catch {
+      setResult(null)
+    } finally {
+      setLoading(false)
     }
   }
 

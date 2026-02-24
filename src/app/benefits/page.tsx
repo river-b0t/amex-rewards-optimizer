@@ -29,7 +29,7 @@ export default async function BenefitsPage() {
           )}
         </p>
         <div className="mt-4">
-          <CSVUpload onImported={() => {}} />
+          <CSVUpload />
         </div>
       </div>
 
