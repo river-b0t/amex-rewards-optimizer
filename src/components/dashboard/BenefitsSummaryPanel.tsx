@@ -17,6 +17,8 @@ function daysUntil(dateStr: string): number {
 }
 
 function formatDollars(cents: number): string {
+  if (cents === 0) return '$0'
+  if (cents < 100) return `$0.${String(cents).padStart(2, '0')}`
   return `$${Math.round(cents / 100).toLocaleString()}`
 }
 
@@ -50,7 +52,7 @@ export function BenefitsSummaryPanel({ benefits }: { benefits: BenefitSummary[] 
       {/* Rows */}
       {benefits.map((b) => {
         const pct = b.amount_cents > 0 ? Math.min(100, Math.round((b.used_cents / b.amount_cents) * 100)) : 0
-        const daysLeft = daysUntil(b.period_ends)
+        const daysLeft = Math.max(0, daysUntil(b.period_ends))
         const catColor = CATEGORY_COLORS[b.category] ?? CATEGORY_COLORS.other
         const isFullyUsed = b.remaining_cents === 0
 
