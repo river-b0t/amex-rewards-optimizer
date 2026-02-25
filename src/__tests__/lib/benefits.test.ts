@@ -80,4 +80,10 @@ describe('getPeriodEnd', () => {
     const end = getPeriodEnd('annual', date)
     expect(end.toISOString().startsWith('2026-12-31')).toBe(true)
   })
+
+  it('4-year: returns Dec 31 of current year', () => {
+    const date = new Date('2026-05-01T00:00:00Z')
+    const end = getPeriodEnd('4-year', date)
+    expect(end.toISOString().startsWith('2026-12-31')).toBe(true)
+  })
 })
