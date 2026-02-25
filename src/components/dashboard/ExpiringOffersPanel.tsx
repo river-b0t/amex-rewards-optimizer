@@ -78,12 +78,18 @@ function EnrollButton({ offer }: { offer: ExpiringOffer }) {
   )
 }
 
-export function ExpiringOffersPanel({ offers }: { offers: ExpiringOffer[] }) {
-  if (offers.length === 0) {
+export function ExpiringOffersPanel({
+  unenrolledOffers,
+  enrolledOffers,
+}: {
+  unenrolledOffers: ExpiringOffer[]
+  enrolledOffers: ExpiringOffer[]
+}) {
+  if (unenrolledOffers.length === 0 && enrolledOffers.length === 0) {
     return (
       <div className="border border-gray-200 rounded-lg p-6">
         <h2 className="text-[14px] font-semibold text-gray-900 mb-4">Expiring Offers</h2>
-        <p className="text-[13px] text-gray-400">No unenrolled offers expiring in the next 14 days.</p>
+        <p className="text-[13px] text-gray-400">No offers expiring soon.</p>
       </div>
     )
   }
@@ -93,7 +99,11 @@ export function ExpiringOffersPanel({ offers }: { offers: ExpiringOffer[] }) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-[#fafafa]">
         <h2 className="text-[14px] font-semibold text-gray-900">Expiring Offers</h2>
-        <span className="text-[11px] text-gray-400">Next 14 days · top {offers.length} by value</span>
+        <span className="text-[11px] text-gray-400">
+          {unenrolledOffers.length > 0 && `${unenrolledOffers.length} to enroll`}
+          {unenrolledOffers.length > 0 && enrolledOffers.length > 0 && ' · '}
+          {enrolledOffers.length > 0 && `${enrolledOffers.length} enrolled`}
+        </span>
       </div>
 
       {/* Column headers */}
@@ -105,8 +115,17 @@ export function ExpiringOffersPanel({ offers }: { offers: ExpiringOffer[] }) {
         ))}
       </div>
 
+      {/* Unenrolled section label — only shown when both sections present */}
+      {enrolledOffers.length > 0 && unenrolledOffers.length > 0 && (
+        <div className="flex items-center gap-3 py-1.5 px-4 bg-blue-50/40 border-b border-blue-100">
+          <span className="text-[10px] font-semibold text-blue-600 uppercase tracking-[0.8px]">
+            Enroll before they're gone
+          </span>
+        </div>
+      )}
+
       {/* Rows */}
-      {offers.map((offer) => {
+      {unenrolledOffers.map((offer) => {
         const days = offer.expiration_date ? daysUntil(offer.expiration_date) : null
         return (
           <div
@@ -125,6 +144,40 @@ export function ExpiringOffersPanel({ offers }: { offers: ExpiringOffer[] }) {
           </div>
         )
       })}
+
+      {/* Enrolled section */}
+      {enrolledOffers.length > 0 && (
+        <>
+          <div className="flex items-center gap-3 py-1.5 px-4 bg-amber-50/60 border-y border-amber-100">
+            <span className="text-[10px] font-semibold text-amber-600 uppercase tracking-[0.8px]">
+              ⚠ Complete before they expire
+            </span>
+          </div>
+
+          {enrolledOffers.map((offer) => {
+            const days = offer.expiration_date ? daysUntil(offer.expiration_date) : null
+            const minSpendText = offer.spend_min_cents
+              ? `$${Math.round(offer.spend_min_cents / 100)} min · untracked`
+              : 'No min'
+            return (
+              <div
+                key={offer.id}
+                className="grid grid-cols-[1fr_80px_60px_80px_80px] items-center px-4 h-[44px] border-b border-gray-50 last:border-b-0 hover:bg-amber-50/30 transition-colors border-l-[3px] border-l-amber-400"
+              >
+                <p className="text-[13px] font-semibold text-gray-900 truncate">{offer.merchant}</p>
+                <p className="text-[13px] font-bold text-green-700 tabular-nums text-right">{formatReward(offer)}</p>
+                <p className="text-[12px] text-gray-400 tabular-nums text-right">{formatReturn(offer)}</p>
+                <p className={`text-[12px] tabular-nums text-right ${days !== null && days <= 7 ? 'text-red-600 font-bold' : 'text-amber-600'}`}>
+                  {days !== null ? `${days}d` : '—'}
+                </p>
+                <div className="flex justify-end">
+                  <span className="text-[11px] text-gray-400 text-right leading-tight">{minSpendText}</span>
+                </div>
+              </div>
+            )
+          })}
+        </>
+      )}
 
       {/* Footer */}
       <div className="px-4 py-2.5 border-t border-gray-100 bg-[#fafafa]">
