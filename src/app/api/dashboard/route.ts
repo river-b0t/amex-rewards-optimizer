@@ -39,18 +39,25 @@ export async function GET() {
     .slice(0, 10)
 
   // 4. Count unenrolled offers expiring within 14 days (for stat card)
-  const { count: rawExpiringCount } = await supabase
-    .from('amex_offers')
-    .select('id', { count: 'exact', head: true })
-    .eq('active', true)
-    .gte('expiration_date', today)
-    .lte('expiration_date', in14)
-
-  // Subtract how many of those are already enrolled
-  const enrolledExpiringCount = enrolledIds.filter((id) =>
-    (rawExpiring ?? []).some((o) => o.id === id)
-  ).length
-  const unenrolledExpiringCount = Math.max(0, (rawExpiringCount ?? 0) - enrolledExpiringCount)
+  let unenrolledExpiringCount = 0
+  if (enrolledIds.length === 0) {
+    const { count } = await supabase
+      .from('amex_offers')
+      .select('id', { count: 'exact', head: true })
+      .eq('active', true)
+      .gte('expiration_date', today)
+      .lte('expiration_date', in14)
+    unenrolledExpiringCount = count ?? 0
+  } else {
+    const { count } = await supabase
+      .from('amex_offers')
+      .select('id', { count: 'exact', head: true })
+      .eq('active', true)
+      .gte('expiration_date', today)
+      .lte('expiration_date', in14)
+      .not('id', 'in', `(${enrolledIds.join(',')})`)
+    unenrolledExpiringCount = count ?? 0
+  }
 
   // 5. Get enrolled benefits with usage
   const { data: benefits } = await supabase
@@ -91,6 +98,8 @@ export async function GET() {
   const benefitsRemainingCents = benefitsSummary.reduce((sum, b) => sum + b.remaining_cents, 0)
 
   // 8. Value captured YTD: benefit usage this year + completed enrolled offers
+  // YTD benefit usage: all usage this year regardless of current enrollment state
+  // (captures value even from benefits later unenrolled)
   const { data: ytdUsage } = await supabase
     .from('benefit_usage')
     .select('amount_used_cents')
