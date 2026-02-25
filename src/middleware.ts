@@ -9,9 +9,7 @@ import { NextResponse } from 'next/server'
       return NextResponse.next()
     }
 
-    const { pathname } = request.nextUrl
-
-    if (pathname === '/login' || pathname.startsWith('/api/')) {
+    if (request.nextUrl.pathname === '/login') {
       return NextResponse.next()
     }
 
@@ -21,5 +19,5 @@ import { NextResponse } from 'next/server'
   }
 
   export const config = {
-    matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
   }
