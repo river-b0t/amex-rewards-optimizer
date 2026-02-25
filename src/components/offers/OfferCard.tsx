@@ -13,7 +13,7 @@ export type Offer = {
   is_enrolled: boolean
 }
 
-type SortKey = 'reward' | 'expiry' | 'merchant'
+type SortKey = 'reward' | 'expiry' | 'merchant' | 'return'
 type FilterKey = 'all' | 'enrolled' | 'expiring' | string
 
 const PAGE_SIZE = 50
@@ -49,6 +49,16 @@ function formatMinSpend(cents: number | null): string {
   return `$${Math.round(cents / 100).toLocaleString()}`
 }
 
+function computeReturn(offer: Offer): number | null {
+  if (
+    offer.reward_type === 'points' ||
+    offer.spend_min_cents == null ||
+    offer.reward_amount_cents == null ||
+    offer.spend_min_cents === 0
+  ) return null
+  return Math.round((offer.reward_amount_cents / offer.spend_min_cents) * 100)
+}
+
 function daysUntil(dateStr: string): number {
   const diff = new Date(dateStr).getTime() - Date.now()
   return Math.ceil(diff / (1000 * 60 * 60 * 24))
@@ -79,7 +89,7 @@ function compareExpiry(a: Offer, b: Offer): number {
 
 // ─── Grid column template ────────────────────────────────────────────────────
 // Merchant(flex) | Category(80) | Reward(100) | MinSpend(90) | Expires(110) | Status(80) | Action(100)
-const GRID = 'grid grid-cols-[minmax(160px,1fr)_80px_100px_90px_110px_80px_100px]'
+const GRID = 'grid grid-cols-[minmax(160px,1fr)_80px_100px_90px_70px_110px_80px_100px]'
 
 // ─── Column header ───────────────────────────────────────────────────────────
 function ColHeader({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' | 'center' }) {
@@ -157,6 +167,20 @@ function OfferRow({ offer, onToggle }: { offer: Offer; onToggle: (id: string) =>
         <span className="font-[var(--font-geist-mono)] text-[13px] text-gray-500 tabular-nums">
           {formatMinSpend(offer.spend_min_cents)}
         </span>
+      </div>
+
+      {/* % Return */}
+      <div className="px-2 text-right">
+        {(() => {
+          const pct = computeReturn(offer)
+          return pct !== null ? (
+            <span className="font-[var(--font-geist-mono)] text-[13px] text-purple-700 font-semibold tabular-nums">
+              {pct}%
+            </span>
+          ) : (
+            <span className="font-[var(--font-geist-mono)] text-[13px] text-gray-300 tabular-nums">—</span>
+          )
+        })()}
       </div>
 
       {/* Expires */}
@@ -279,6 +303,11 @@ export function OffersTable({ offers: initial }: { offers: Offer[] }) {
     return [...filtered].sort((a, b) => {
       if (sortBy === 'reward') return (b.reward_amount_cents ?? 0) - (a.reward_amount_cents ?? 0)
       if (sortBy === 'expiry') return compareExpiry(a, b)
+      if (sortBy === 'return') {
+        const aRet = computeReturn(a) ?? -1
+        const bRet = computeReturn(b) ?? -1
+        return bRet - aRet
+      }
       return a.merchant.localeCompare(b.merchant)
     })
   }, [filtered, sortBy])
@@ -314,6 +343,7 @@ export function OffersTable({ offers: initial }: { offers: Offer[] }) {
           <SortPill active={sortBy === 'reward'} onClick={() => setSortBy('reward')}>Reward ↓</SortPill>
           <SortPill active={sortBy === 'expiry'} onClick={() => setSortBy('expiry')}>Expiry ↑</SortPill>
           <SortPill active={sortBy === 'merchant'} onClick={() => setSortBy('merchant')}>Merchant A–Z</SortPill>
+          <SortPill active={sortBy === 'return'} onClick={() => setSortBy('return')}>% Return ↓</SortPill>
         </div>
         <div className="flex flex-wrap gap-0.5 justify-end">
           <FilterChip active={filterBy === 'all'} onClick={() => setFilterBy('all')}>All</FilterChip>
@@ -339,6 +369,7 @@ export function OffersTable({ offers: initial }: { offers: Offer[] }) {
           <ColHeader align="center">Category</ColHeader>
           <ColHeader align="right">Reward</ColHeader>
           <ColHeader align="right">Min Spend</ColHeader>
+          <ColHeader align="right">% Return</ColHeader>
           <ColHeader>Expires</ColHeader>
           <ColHeader align="center">Status</ColHeader>
           <ColHeader align="right">Action</ColHeader>
