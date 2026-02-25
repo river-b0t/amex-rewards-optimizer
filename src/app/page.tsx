@@ -16,7 +16,7 @@ function formatDollars(cents: number): string {
 
 export default async function DashboardPage() {
   const data = await getDashboardData()
-  const { stats, expiringOffers, benefitsSummary } = data
+  const { stats, expiringOffers, enrolledExpiringOffers, benefitsSummary } = data
 
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-6 space-y-6">
@@ -34,9 +34,9 @@ export default async function DashboardPage() {
           accent="blue"
         />
         <StatCard
-          label="Expiring in 14d"
+          label="Expiring Soon"
           value={stats.expiringOffersCount.toString()}
-          subtext="unenrolled"
+          subtext="unenrolled, 14d"
           accent={stats.expiringOffersCount > 0 ? 'amber' : 'default'}
         />
         <StatCard
@@ -54,7 +54,10 @@ export default async function DashboardPage() {
 
       {/* Two-panel layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ExpiringOffersPanel offers={expiringOffers} />
+        <ExpiringOffersPanel
+          unenrolledOffers={expiringOffers}
+          enrolledOffers={enrolledExpiringOffers ?? []}
+        />
         <BenefitsSummaryPanel benefits={benefitsSummary} />
       </div>
     </div>
