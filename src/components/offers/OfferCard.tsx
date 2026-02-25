@@ -88,7 +88,7 @@ function compareExpiry(a: Offer, b: Offer): number {
 }
 
 // ─── Grid column template ────────────────────────────────────────────────────
-// Merchant(flex) | Category(80) | Reward(100) | MinSpend(90) | Expires(110) | Status(80) | Action(100)
+// Merchant(flex) | Category(80) | Reward(100) | MinSpend(90) | %Return(70) | Expires(110) | Status(80) | Action(100)
 const GRID = 'grid grid-cols-[minmax(160px,1fr)_80px_100px_90px_70px_110px_80px_100px]'
 
 // ─── Column header ───────────────────────────────────────────────────────────
