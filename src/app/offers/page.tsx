@@ -8,7 +8,15 @@ async function getOffers(): Promise<Offer[]> {
   return res.json()
 }
 
+async function getSyncStatus(): Promise<string | null> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const res = await fetch(`${baseUrl}/api/offers/sync-status`, { cache: 'no-store' })
+  if (!res.ok) return null
+  const data = await res.json()
+  return data.lastSyncedAt ?? null
+}
+
 export default async function OffersPage() {
-  const offers = await getOffers()
-  return <OffersTable offers={offers} />
+  const [offers, lastSyncedAt] = await Promise.all([getOffers(), getSyncStatus()])
+  return <OffersTable offers={offers} lastSyncedAt={lastSyncedAt} />
 }

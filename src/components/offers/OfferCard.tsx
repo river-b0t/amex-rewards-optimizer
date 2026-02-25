@@ -259,8 +259,17 @@ function FilterChip({
   )
 }
 
+function formatRelativeTime(isoString: string): string {
+  const diffMs = Date.now() - new Date(isoString).getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  if (diffHours < 1) return 'just now'
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays}d ago`
+}
+
 // ─── Main OffersTable component ───────────────────────────────────────────────
-export function OffersTable({ offers: initial }: { offers: Offer[] }) {
+export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]; lastSyncedAt?: string | null }) {
   const [offers, setOffers] = useState(initial)
   const [sortBy, setSortBy] = useState<SortKey>('reward')
   const [filterBy, setFilterBy] = useState<FilterKey>('all')
@@ -325,6 +334,7 @@ export function OffersTable({ offers: initial }: { offers: Offer[] }) {
           <h1 className="text-[20px] font-semibold text-gray-900 tracking-tight">Amex Offers</h1>
           <span className="text-[13px] text-gray-400">
             {offers.length.toLocaleString()} offers · {enrolledCount} enrolled
+            {lastSyncedAt && ` · synced ${formatRelativeTime(lastSyncedAt)}`}
           </span>
         </div>
         <div className="flex gap-2">
