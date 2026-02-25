@@ -16,9 +16,10 @@ export async function GET() {
     .select('id', { count: 'exact', head: true })
 
   // 2. Get enrolled offer IDs (to exclude from expiring panel)
-  const { data: enrolledRows } = await supabase
+  const { data: enrolledRows, error: enrolledError } = await supabase
     .from('enrolled_offers')
     .select('offer_id')
+  if (enrolledError) return NextResponse.json({ error: enrolledError.message }, { status: 500 })
 
   const enrolledIds = (enrolledRows ?? []).map((r) => r.offer_id as string)
 
@@ -41,12 +42,13 @@ export async function GET() {
   // 4. Count unenrolled offers expiring within 14 days (for stat card)
   let unenrolledExpiringCount = 0
   if (enrolledIds.length === 0) {
-    const { count } = await supabase
+    const { count, error: expiringCountError } = await supabase
       .from('amex_offers')
       .select('id', { count: 'exact', head: true })
       .eq('active', true)
       .gte('expiration_date', today)
       .lte('expiration_date', in14)
+    if (expiringCountError) return NextResponse.json({ error: expiringCountError.message }, { status: 500 })
     unenrolledExpiringCount = count ?? 0
   } else {
     const { count } = await supabase
@@ -60,12 +62,13 @@ export async function GET() {
   }
 
   // 5. Get enrolled benefits with usage
-  const { data: benefits } = await supabase
+  const { data: benefits, error: benefitsError } = await supabase
     .from('amex_benefits')
     .select('*, benefit_usage(*)')
     .eq('active', true)
     .eq('enrolled', true)
     .order('sort_order')
+  if (benefitsError) return NextResponse.json({ error: benefitsError.message }, { status: 500 })
 
   // 6. Compute per-benefit stats
   const benefitsSummary = (benefits ?? []).map((b) => {
@@ -100,10 +103,11 @@ export async function GET() {
   // 8. Value captured YTD: benefit usage this year + completed enrolled offers
   // YTD benefit usage: all usage this year regardless of current enrollment state
   // (captures value even from benefits later unenrolled)
-  const { data: ytdUsage } = await supabase
+  const { data: ytdUsage, error: ytdUsageError } = await supabase
     .from('benefit_usage')
     .select('amount_used_cents')
     .like('period_key', `${currentYear}%`)
+  if (ytdUsageError) return NextResponse.json({ error: ytdUsageError.message }, { status: 500 })
 
   const benefitYTDCents = (ytdUsage ?? []).reduce(
     (sum, u) => sum + (u.amount_used_cents as number), 0
@@ -115,8 +119,9 @@ export async function GET() {
     .eq('threshold_met', true)
 
   const offersYTDCents = (completedOffers ?? []).reduce((sum, row) => {
-    const o = row.amex_offers as unknown as { reward_amount_cents: number } | null
-    return sum + (o?.reward_amount_cents ?? 0)
+    const raw = row.amex_offers
+    const o = Array.isArray(raw) ? raw[0] : raw
+    return sum + ((o as { reward_amount_cents?: number } | null)?.reward_amount_cents ?? 0)
   }, 0)
 
   const valueCapturedYTDCents = benefitYTDCents + offersYTDCents
