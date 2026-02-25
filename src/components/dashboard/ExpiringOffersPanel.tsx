@@ -13,7 +13,7 @@ type ExpiringOffer = {
 }
 
 function formatReward(offer: ExpiringOffer): string {
-  if (!offer.reward_amount_cents) return '—'
+  if (offer.reward_amount_cents == null) return '—'
   if (offer.reward_type === 'points') {
     return offer.reward_amount_cents.toLocaleString() + ' pts'
   }
@@ -24,8 +24,8 @@ function formatReward(offer: ExpiringOffer): string {
 function formatReturn(offer: ExpiringOffer): string {
   if (
     offer.reward_type === 'points' ||
-    !offer.spend_min_cents ||
-    !offer.reward_amount_cents ||
+    offer.spend_min_cents == null ||
+    offer.reward_amount_cents == null ||
     offer.spend_min_cents === 0
   ) return '—'
   const pct = (offer.reward_amount_cents / offer.spend_min_cents) * 100
@@ -43,14 +43,19 @@ function EnrollButton({ offer }: { offer: ExpiringOffer }) {
 
   async function handleEnroll() {
     setLoading(true)
-    const res = await fetch('/api/offers/enroll', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ offer_id: offer.id }),
-    })
-    const data = await res.json()
-    setEnrolled(data.enrolled)
-    setLoading(false)
+    try {
+      const res = await fetch('/api/offers/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offer_id: offer.id }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setEnrolled(data.enrolled)
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (enrolled) {
