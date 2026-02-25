@@ -54,36 +54,36 @@ describe('getPeriodEnd', () => {
   it('monthly: returns last day of current month', () => {
     const date = new Date('2026-02-15T00:00:00Z')
     const end = getPeriodEnd('monthly', date)
-    expect(end.toISOString().startsWith('2026-02-28')).toBe(true)
+    expect(end.toISOString()).toBe('2026-02-28T00:00:00.000Z')
   })
 
   it('quarterly: returns last day of Q1 when in February', () => {
     const date = new Date('2026-02-15T00:00:00Z')
     const end = getPeriodEnd('quarterly', date)
-    expect(end.toISOString().startsWith('2026-03-31')).toBe(true)
+    expect(end.toISOString()).toBe('2026-03-31T00:00:00.000Z')
   })
 
   it('semi-annual: returns June 30 when in H1', () => {
     const date = new Date('2026-03-01T00:00:00Z')
     const end = getPeriodEnd('semi-annual', date)
-    expect(end.toISOString().startsWith('2026-06-30')).toBe(true)
+    expect(end.toISOString()).toBe('2026-06-30T00:00:00.000Z')
   })
 
   it('semi-annual: returns Dec 31 when in H2', () => {
     const date = new Date('2026-08-01T00:00:00Z')
     const end = getPeriodEnd('semi-annual', date)
-    expect(end.toISOString().startsWith('2026-12-31')).toBe(true)
+    expect(end.toISOString()).toBe('2026-12-31T00:00:00.000Z')
   })
 
   it('annual: returns Dec 31 of current year', () => {
     const date = new Date('2026-05-01T00:00:00Z')
     const end = getPeriodEnd('annual', date)
-    expect(end.toISOString().startsWith('2026-12-31')).toBe(true)
+    expect(end.toISOString()).toBe('2026-12-31T00:00:00.000Z')
   })
 
   it('4-year: returns Dec 31 of current year', () => {
     const date = new Date('2026-05-01T00:00:00Z')
     const end = getPeriodEnd('4-year', date)
-    expect(end.toISOString().startsWith('2026-12-31')).toBe(true)
+    expect(end.toISOString()).toBe('2026-12-31T00:00:00.000Z')
   })
 })

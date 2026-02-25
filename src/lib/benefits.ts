@@ -41,7 +41,8 @@ export function getPeriodEnd(resetPeriod: ResetPeriod, date: Date = new Date()):
     }
     case 'annual':
     case '4-year':
-      return new Date(Date.UTC(year, 12, 0)) // Dec 31
+      // 4-year treated same as annual (returns end of current year) — known simplification
+      return new Date(Date.UTC(year, 12, 0))
   }
 }
 
