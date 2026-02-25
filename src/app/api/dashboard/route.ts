@@ -68,21 +68,21 @@ export async function GET() {
     .from('enrolled_offers')
     .select('id, amex_offers!inner(merchant, reward_amount_cents, spend_min_cents, expiration_date, reward_type)')
     .eq('threshold_met', false)
+    .gte('amex_offers.expiration_date', today)
+    .lte('amex_offers.expiration_date', in30)
+    .order('amex_offers.expiration_date', { ascending: true })
 
-  const enrolledExpiringOffers = (rawEnrolledExpiring ?? [])
-    .map((row) => {
-      const o = Array.isArray(row.amex_offers) ? row.amex_offers[0] : row.amex_offers
-      return {
-        id: row.id as string,
-        merchant: (o as { merchant: string }).merchant,
-        reward_amount_cents: (o as { reward_amount_cents: number | null }).reward_amount_cents,
-        spend_min_cents: (o as { spend_min_cents: number | null }).spend_min_cents,
-        expiration_date: (o as { expiration_date: string }).expiration_date,
-        reward_type: (o as { reward_type: string }).reward_type,
-      }
-    })
-    .filter((o) => o.expiration_date >= today && o.expiration_date <= in30)
-    .sort((a, b) => a.expiration_date.localeCompare(b.expiration_date))
+  const enrolledExpiringOffers = (rawEnrolledExpiring ?? []).map((row) => {
+    const o = Array.isArray(row.amex_offers) ? row.amex_offers[0] : row.amex_offers
+    return {
+      id: row.id as string,
+      merchant: (o as { merchant: string }).merchant,
+      reward_amount_cents: (o as { reward_amount_cents: number | null }).reward_amount_cents,
+      spend_min_cents: (o as { spend_min_cents: number | null }).spend_min_cents,
+      expiration_date: (o as { expiration_date: string }).expiration_date,
+      reward_type: (o as { reward_type: string }).reward_type,
+    }
+  })
 
   // 5. Get enrolled benefits with usage
   const { data: benefits, error: benefitsError } = await supabase
