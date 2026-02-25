@@ -1,4 +1,4 @@
-import { getPeriodKey, getRemainingCents, isExpiringSoon } from '@/lib/benefits'
+import { getPeriodKey, getRemainingCents, isExpiringSoon, getPeriodEnd } from '@/lib/benefits'
 
 describe('getPeriodKey', () => {
   it('returns YYYY-MM for monthly', () => {
@@ -47,5 +47,37 @@ describe('isExpiringSoon', () => {
   })
   it('returns false if semi-annual benefit and not near end of period', () => {
     expect(isExpiringSoon('semi-annual', new Date('2026-03-15'))).toBe(false)
+  })
+})
+
+describe('getPeriodEnd', () => {
+  it('monthly: returns last day of current month', () => {
+    const date = new Date('2026-02-15T00:00:00Z')
+    const end = getPeriodEnd('monthly', date)
+    expect(end.toISOString().startsWith('2026-02-28')).toBe(true)
+  })
+
+  it('quarterly: returns last day of Q1 when in February', () => {
+    const date = new Date('2026-02-15T00:00:00Z')
+    const end = getPeriodEnd('quarterly', date)
+    expect(end.toISOString().startsWith('2026-03-31')).toBe(true)
+  })
+
+  it('semi-annual: returns June 30 when in H1', () => {
+    const date = new Date('2026-03-01T00:00:00Z')
+    const end = getPeriodEnd('semi-annual', date)
+    expect(end.toISOString().startsWith('2026-06-30')).toBe(true)
+  })
+
+  it('semi-annual: returns Dec 31 when in H2', () => {
+    const date = new Date('2026-08-01T00:00:00Z')
+    const end = getPeriodEnd('semi-annual', date)
+    expect(end.toISOString().startsWith('2026-12-31')).toBe(true)
+  })
+
+  it('annual: returns Dec 31 of current year', () => {
+    const date = new Date('2026-05-01T00:00:00Z')
+    const end = getPeriodEnd('annual', date)
+    expect(end.toISOString().startsWith('2026-12-31')).toBe(true)
   })
 })
