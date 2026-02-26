@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
   export async function POST(request: NextRequest) {
-    const { password } = await request.json()
-    const envPassword = process.env.SITE_PASSWORD
+    const formData = await request.formData()
+    const password = formData.get('password') as string
 
-    console.log('submitted:', password)
-    console.log('env:', envPassword)
-
-    if (password !== envPassword) {
-      return NextResponse.json({ error: 'Incorrect password', submitted: password, env: envPassword
-   }, { status: 401 })
+    if (password !== process.env.SITE_PASSWORD) {
+      return NextResponse.redirect(new URL('/login?error=1', request.url))
     }
 
-    const response = NextResponse.json({ ok: true })
+    const response = NextResponse.redirect(new URL('/', request.url))
     response.cookies.set('site-auth', process.env.SITE_PASSWORD!, {
       httpOnly: true,
       secure: true,
