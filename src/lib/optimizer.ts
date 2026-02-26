@@ -93,14 +93,21 @@ function resolveCategory(query: string, knownCategories: string[]): string {
     return MERCHANT_ALIASES[normalized]
   }
 
-  // 2. Substring match against category slugs (spaces = underscores)
-  const match = knownCategories.find((cat) => {
+  // 2. Exact match (after normalizing underscores to spaces)
+  const queryReadable = normalized.replace(/_/g, ' ')
+  const exact = knownCategories.find(
+    (cat) => cat !== 'everything_else' && cat.replace(/_/g, ' ') === queryReadable
+  )
+  if (exact) return exact
+
+  // 3. Substring match — prefer longest (most specific) match
+  const submatches = knownCategories.filter((cat) => {
     if (cat === 'everything_else') return false
     const catNorm = cat.replace(/_/g, ' ')
-    const queryNorm = normalized.replace(/_/g, ' ')
-    return catNorm.includes(queryNorm) || queryNorm.includes(catNorm)
+    return catNorm.includes(queryReadable) || queryReadable.includes(catNorm)
   })
-  if (match) return match
+  submatches.sort((a, b) => b.length - a.length)
+  if (submatches[0]) return submatches[0]
 
   return 'everything_else'
 }
@@ -112,30 +119,34 @@ export function getCardResults(query: string, cards: Card[]): CardResult[] {
 
   const resolved = resolveCategory(query, allCategories)
 
-  const results: CardResult[] = cards.map((card) => {
-    const matched =
-      card.card_categories.find((c) => c.category_name === resolved) ??
-      card.card_categories.find((c) => c.category_name === 'everything_else')
+  const results: CardResult[] = cards
+    .map((card) => {
+      const matched =
+        card.card_categories.find((c) => c.category_name === resolved) ??
+        card.card_categories.find((c) => c.category_name === 'everything_else')
 
-    const other_categories = card.card_categories
-      .filter((c) => c.category_name !== matched?.category_name)
-      .sort((a, b) => b.earn_rate - a.earn_rate)
-      .slice(0, 4)
-      .map((c) => ({
-        category_name: c.category_name,
-        earn_rate: c.earn_rate,
-        earn_type: c.earn_type,
-      }))
+      if (!matched) return null
 
-    return {
-      card,
-      earn_rate: matched?.earn_rate ?? 1,
-      earn_type: matched?.earn_type ?? 'multiplier',
-      category_matched: matched?.category_name ?? 'everything_else',
-      notes: matched?.notes ?? null,
-      other_categories,
-    }
-  })
+      const other_categories = card.card_categories
+        .filter((c) => c.category_name !== matched.category_name)
+        .sort((a, b) => b.earn_rate - a.earn_rate)
+        .slice(0, 4)
+        .map((c) => ({
+          category_name: c.category_name,
+          earn_rate: c.earn_rate,
+          earn_type: c.earn_type,
+        }))
+
+      return {
+        card,
+        earn_rate: matched.earn_rate,
+        earn_type: matched.earn_type,
+        category_matched: matched.category_name,
+        notes: matched.notes,
+        other_categories,
+      }
+    })
+    .filter((r): r is CardResult => r !== null)
 
   return results.sort((a, b) => b.earn_rate - a.earn_rate)
 }
