@@ -1,36 +1,9 @@
-'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-
-export default function LoginPage() {
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState(false)
-  const router = useRouter()
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      body: JSON.stringify({ password }),
-      headers: { 'Content-Type': 'application/json' },
-    })
-    if (res.ok) {
-      window.location.href = '/'
-    } else {
-      setError(true)
-    }
+export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+    return (
+      <form method="POST" action="/api/login">
+        <input type="password" name="password" placeholder="Password" />
+        <button type="submit">Enter</button>
+        {searchParams.error && <p>Incorrect password</p>}
+      </form>
+    )
   }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        placeholder="Password"
-      />
-      <button type="submit">Enter</button>
-      {error && <p>Incorrect password</p>}
-    </form>
-  )
-}
