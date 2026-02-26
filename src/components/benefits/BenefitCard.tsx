@@ -56,13 +56,16 @@ export function BenefitCard({ benefit: initial }: Props) {
   async function markFullyUsed() {
     if (benefit.remaining_cents <= 0) return
     setUsageLoading(true)
-    await fetch('/api/benefits/usage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ benefit_id: benefit.id, amount_used_cents: benefit.remaining_cents }),
-    })
-    setUsedCents(initial.amount_cents)
-    setUsageLoading(false)
+    try {
+      await fetch('/api/benefits/usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benefit_id: benefit.id, amount_used_cents: benefit.remaining_cents }),
+      })
+      setUsedCents(initial.amount_cents)
+    } finally {
+      setUsageLoading(false)
+    }
   }
 
   async function logPartialUsage() {
