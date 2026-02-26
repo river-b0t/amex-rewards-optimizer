@@ -1,6 +1,12 @@
-import { getBestCard } from '@/lib/optimizer'
+import { getBestCard, EarnType } from '@/lib/optimizer'
 
-const mockCards = [
+const mockCards: {
+  id: string
+  name: string
+  reward_currency: string
+  color: string
+  card_categories: { category_name: string; earn_rate: number; earn_type: EarnType; notes: string | null }[]
+}[] = [
   {
     id: '1',
     name: 'Amex Platinum',
@@ -29,8 +35,8 @@ const mockCards = [
     reward_currency: 'cashback',
     color: '#f76400',
     card_categories: [
-      { category_name: 'grocery_q1_2026', earn_rate: 5, earn_type: 'percent', notes: '5% Jan-Mar 2026' },
-      { category_name: 'everything_else', earn_rate: 1, earn_type: 'percent', notes: null },
+      { category_name: 'grocery_q1_2026', earn_rate: 5, earn_type: 'cashback', notes: '5% Jan-Mar 2026' },
+      { category_name: 'everything_else', earn_rate: 1, earn_type: 'cashback', notes: null },
     ],
   },
 ]
