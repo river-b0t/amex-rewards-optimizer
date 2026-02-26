@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
   export async function POST(request: NextRequest) {
-    const formData = await request.formData()
-    const password = formData.get('password') as string
+    const { password } = await request.json()
 
     if (password !== process.env.SITE_PASSWORD) {
-      return NextResponse.redirect(new URL('/login?error=1', request.url))
+      return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
     }
 
-    const response = NextResponse.redirect(new URL('/', request.url))
+    const response = NextResponse.json({ ok: true })
     response.cookies.set('site-auth', process.env.SITE_PASSWORD!, {
       httpOnly: true,
       secure: true,
