@@ -329,21 +329,13 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-6">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center mb-4">
         <div className="flex items-baseline gap-3">
           <h1 className="text-[20px] font-semibold text-gray-900 tracking-tight">Amex Offers</h1>
           <span className="text-[13px] text-gray-400">
             {offers.length.toLocaleString()} offers · {enrolledCount} enrolled
             {lastSyncedAt && ` · synced ${formatRelativeTime(lastSyncedAt)}`}
           </span>
-        </div>
-        <div className="flex gap-2">
-          <button className="text-[12px] font-medium border border-gray-200 rounded px-3 py-1.5 text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-colors">
-            Sort
-          </button>
-          <button className="text-[12px] font-medium border border-gray-200 rounded px-3 py-1.5 text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-colors">
-            Filter
-          </button>
         </div>
       </div>
 
