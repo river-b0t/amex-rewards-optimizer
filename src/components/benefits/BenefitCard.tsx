@@ -183,7 +183,10 @@ export function BenefitCard({ benefit: initial }: Props) {
                         max={Math.floor(benefit.remaining_cents / 100)}
                         value={partialInput}
                         onChange={(e) => setPartialInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && logPartialUsage()}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') logPartialUsage()
+                          if (e.key === 'Escape') { setShowPartial(false); setPartialInput('') }
+                        }}
                         className="w-16 text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:border-gray-400"
                         placeholder="0"
                         autoFocus
