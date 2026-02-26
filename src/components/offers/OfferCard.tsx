@@ -122,8 +122,11 @@ function OfferRow({ offer, onToggle }: { offer: Offer; onToggle: (id: string) =>
 
   async function handleToggle() {
     setLoading(true)
-    await onToggle(offer.id)
-    setLoading(false)
+    try {
+      await onToggle(offer.id)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -280,9 +283,12 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
 
   async function handleSync() {
     setSyncing(true)
-    await fetch('/api/offers/sync-now', { method: 'POST' })
-    router.refresh()
-    setSyncing(false)
+    try {
+      await fetch('/api/offers/sync-now', { method: 'POST' })
+      router.refresh()
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const toggleEnroll = useCallback(async (offerId: string) => {
