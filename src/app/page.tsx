@@ -64,8 +64,7 @@ import { createServiceClient } from '@/lib/supabase'
 
     const { data: rawEnrolledExpiring } = await supabase
       .from('enrolled_offers')
-      .select('id, amex_offers!inner(merchant, reward_amount_cents, spend_min_cents,
-  expiration_date, reward_type)')
+      .select('id, amex_offers!inner(merchant, reward_amount_cents, spend_min_cents, expiration_date, reward_type)')
       .eq('threshold_met', false)
       .gte('amex_offers.expiration_date', today)
       .lte('amex_offers.expiration_date', in30)
