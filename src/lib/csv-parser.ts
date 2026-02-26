@@ -60,7 +60,7 @@ export function matchToBenefit(description: string, amount: number): string | nu
 export function parseAmexDate(dateStr: string): Date {
   // Amex CSV date format: MM/DD/YYYY
   const [m, d, y] = dateStr.split('/')
-  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
+  return new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d)))
 }
 
 export type EnrolledOfferInput = {

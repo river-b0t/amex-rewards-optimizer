@@ -21,10 +21,11 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient()
 
   // ── Benefits matching ──────────────────────────────────────────────
-  const { data: benefits } = await supabase
+  const { data: benefits, error: benefitsError } = await supabase
     .from('amex_benefits')
     .select('id, name, reset_period')
     .eq('active', true)
+  if (benefitsError) return NextResponse.json({ error: benefitsError.message }, { status: 500 })
 
   const benefitMatches: BenefitMatchResult[] = []
 
@@ -60,10 +61,11 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Offers matching ───────────────────────────────────────────────
-  const { data: enrolledOffers } = await supabase
+  const { data: enrolledOffers, error: offersError } = await supabase
     .from('enrolled_offers')
     .select('id, offer_id, amex_offers(merchant, spend_min_cents)')
     .eq('threshold_met', false)
+  if (offersError) return NextResponse.json({ error: offersError.message }, { status: 500 })
 
   const offerInputs = (enrolledOffers ?? []).map((e) => ({
     enrollment_id: e.id as string,
