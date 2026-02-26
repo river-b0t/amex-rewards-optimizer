@@ -1,7 +1,9 @@
+export type EarnType = 'multiplier' | 'cashback'
+
 type Category = {
   category_name: string
   earn_rate: number
-  earn_type: string
+  earn_type: EarnType
   notes: string | null
 }
 
@@ -16,13 +18,13 @@ type Card = {
 export type OtherCategory = {
   category_name: string
   earn_rate: number
-  earn_type: string
+  earn_type: EarnType
 }
 
 export type CardResult = {
   card: Card
   earn_rate: number
-  earn_type: string
+  earn_type: EarnType
   category_matched: string
   notes: string | null
   other_categories: OtherCategory[]
