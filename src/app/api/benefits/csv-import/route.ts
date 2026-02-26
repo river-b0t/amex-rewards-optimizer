@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
-import { parseAmexCSV, matchToBenefit } from '@/lib/csv-parser'
+import { parseAmexCSV, matchToBenefit, parseAmexDate } from '@/lib/csv-parser'
 import { getPeriodKey } from '@/lib/benefits'
-
-function parseAmexDate(dateStr: string): Date {
-  const [m, d, y] = dateStr.split('/')
-  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
-}
 
 export async function POST(req: NextRequest) {
   const { csv } = await req.json()
