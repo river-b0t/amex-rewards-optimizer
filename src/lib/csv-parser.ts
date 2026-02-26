@@ -56,3 +56,59 @@ export function matchToBenefit(description: string, amount: number): string | nu
   }
   return null
 }
+
+export function parseAmexDate(dateStr: string): Date {
+  // Amex CSV date format: MM/DD/YYYY
+  const [m, d, y] = dateStr.split('/')
+  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
+}
+
+export type EnrolledOfferInput = {
+  enrollment_id: string
+  offer_id: string
+  merchant: string
+  spend_min_cents: number | null
+}
+
+export type OfferMatchResult = {
+  enrollment_id: string
+  offer_id: string
+  merchant: string
+  total_spent_cents: number
+  spend_min_cents: number
+}
+
+function normalizeMerchant(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+export function matchToOffers(
+  transactions: ParsedTransaction[],
+  offers: EnrolledOfferInput[]
+): OfferMatchResult[] {
+  const results: OfferMatchResult[] = []
+
+  for (const offer of offers) {
+    if (offer.spend_min_cents === null || !offer.merchant) continue
+
+    const normalizedMerchant = normalizeMerchant(offer.merchant)
+    if (!normalizedMerchant) continue
+
+    const matching = transactions.filter(
+      (t) => t.is_credit && normalizeMerchant(t.description).includes(normalizedMerchant)
+    )
+    const totalCents = Math.round(matching.reduce((sum, t) => sum + t.amount, 0) * 100)
+
+    if (totalCents >= offer.spend_min_cents) {
+      results.push({
+        enrollment_id: offer.enrollment_id,
+        offer_id: offer.offer_id,
+        merchant: offer.merchant,
+        total_spent_cents: totalCents,
+        spend_min_cents: offer.spend_min_cents,
+      })
+    }
+  }
+
+  return results
+}
