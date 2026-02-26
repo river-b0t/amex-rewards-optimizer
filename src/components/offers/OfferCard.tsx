@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 
 export type Offer = {
   id: string
@@ -274,6 +275,15 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
   const [sortBy, setSortBy] = useState<SortKey>('reward')
   const [filterBy, setFilterBy] = useState<FilterKey>('all')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const router = useRouter()
+  const [syncing, setSyncing] = useState(false)
+
+  async function handleSync() {
+    setSyncing(true)
+    await fetch('/api/offers/sync-now', { method: 'POST' })
+    router.refresh()
+    setSyncing(false)
+  }
 
   const toggleEnroll = useCallback(async (offerId: string) => {
     const res = await fetch('/api/offers/enroll', {
@@ -329,7 +339,7 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-6">
       {/* ── Header ── */}
-      <div className="flex items-center mb-4">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-baseline gap-3">
           <h1 className="text-[20px] font-semibold text-gray-900 tracking-tight">Amex Offers</h1>
           <span className="text-[13px] text-gray-400">
@@ -337,6 +347,13 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
             {lastSyncedAt && ` · synced ${formatRelativeTime(lastSyncedAt)}`}
           </span>
         </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="text-[12px] font-medium border border-gray-200 rounded px-3 py-1.5 text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-40"
+        >
+          {syncing ? 'Syncing…' : 'Sync now'}
+        </button>
       </div>
 
       {/* ── Toolbar ── */}
