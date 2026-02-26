@@ -39,6 +39,9 @@ export function BenefitCard({ benefit: initial }: Props) {
   const [enrolled, setEnrolled] = useState(initial.enrolled)
   const [usageLoading, setUsageLoading] = useState(false)
   const [enrollLoading, setEnrollLoading] = useState(false)
+  const [showPartial, setShowPartial] = useState(false)
+  const [partialInput, setPartialInput] = useState('')
+  const [partialLoading, setPartialLoading] = useState(false)
 
   const benefit = {
     ...initial,
@@ -60,6 +63,22 @@ export function BenefitCard({ benefit: initial }: Props) {
     })
     setUsedCents(initial.amount_cents)
     setUsageLoading(false)
+  }
+
+  async function logPartialUsage() {
+    const dollars = parseFloat(partialInput)
+    if (!dollars || dollars <= 0) return
+    const cents = Math.min(Math.round(dollars * 100), benefit.remaining_cents)
+    setPartialLoading(true)
+    await fetch('/api/benefits/usage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benefit_id: benefit.id, amount_used_cents: cents }),
+    })
+    setUsedCents((prev) => Math.min(prev + cents, initial.amount_cents))
+    setPartialInput('')
+    setShowPartial(false)
+    setPartialLoading(false)
   }
 
   async function toggleEnrolled() {
@@ -130,15 +149,59 @@ export function BenefitCard({ benefit: initial }: Props) {
           ) : (
             <>
               {enrolled && !isFullyUsed && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs"
-                  onClick={markFullyUsed}
-                  disabled={usageLoading}
-                >
-                  {usageLoading ? 'Saving...' : 'Mark fully used'}
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                    onClick={markFullyUsed}
+                    disabled={usageLoading}
+                  >
+                    {usageLoading ? 'Saving...' : 'Mark fully used'}
+                  </Button>
+                  {!showPartial ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs text-muted-foreground"
+                      onClick={() => setShowPartial(true)}
+                    >
+                      Log partial
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">$</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={Math.floor(benefit.remaining_cents / 100)}
+                        value={partialInput}
+                        onChange={(e) => setPartialInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && logPartialUsage()}
+                        className="w-16 text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:border-gray-400"
+                        placeholder="0"
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={logPartialUsage}
+                        disabled={partialLoading || !partialInput}
+                      >
+                        {partialLoading ? '...' : 'Log'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs text-muted-foreground"
+                        onClick={() => { setShowPartial(false); setPartialInput('') }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
               {enrolled && (
                 <Button
