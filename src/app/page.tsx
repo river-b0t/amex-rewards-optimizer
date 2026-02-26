@@ -156,8 +156,7 @@ import { createServiceClient } from '@/lib/supabase'
   accent="default" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ExpiringOffersPanel offers={expiringOffers}
-  enrolledExpiringOffers={enrolledExpiringOffers} />
+          <ExpiringOffersPanel offers={expiringOffers} enrolledExpiringOffers={enrolledExpiringOffers} />
           <BenefitsSummaryPanel benefits={benefitsSummary} />
         </div>
       </div>
