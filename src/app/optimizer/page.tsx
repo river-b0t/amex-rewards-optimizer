@@ -23,12 +23,20 @@ export default function OptimizerPage() {
   const [results, setResults] = useState<CardResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   async function lookup(category: string) {
     if (!category.trim()) return
     setLoading(true)
     setSearched(category)
+    setError(null)
     const res = await fetch(`/api/optimizer?category=${encodeURIComponent(category.trim())}`)
+    if (!res.ok) {
+      setResults([])
+      setError('Failed to load results. Try again.')
+      setLoading(false)
+      return
+    }
     const data = await res.json()
     setResults(Array.isArray(data) ? data : [])
     setLoading(false)
@@ -78,6 +86,10 @@ export default function OptimizerPage() {
           </Button>
         ))}
       </div>
+
+      {error && (
+        <p className="text-sm text-red-500">{error}</p>
+      )}
 
       {results.length > 0 && (
         <div className="space-y-3">
