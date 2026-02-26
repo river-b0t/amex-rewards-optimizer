@@ -1,0 +1,48 @@
+import { NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase'
+import { scrapeFrequentMilerOffers } from '@/lib/scraper'
+
+export async function POST() {
+  try {
+    const offers = await scrapeFrequentMilerOffers()
+
+    if (offers.length === 0) {
+      return NextResponse.json(
+        { synced: 0, message: 'No offers scraped', timestamp: new Date().toISOString() },
+        { status: 200 }
+      )
+    }
+
+    const supabase = createServiceClient()
+
+    const { error: upsertError } = await supabase.from('amex_offers').upsert(
+      offers.map((o) => ({
+        ...o,
+        active: true,
+        scraped_at: new Date().toISOString(),
+      })),
+      {
+        onConflict: 'merchant,expiration_date,reward_amount_cents',
+        ignoreDuplicates: false,
+      }
+    )
+
+    if (upsertError) {
+      return NextResponse.json({ error: upsertError.message }, { status: 500 })
+    }
+
+    const today = new Date().toISOString().split('T')[0]
+    await supabase
+      .from('amex_offers')
+      .update({ active: false })
+      .lt('expiration_date', today)
+
+    return NextResponse.json({
+      synced: offers.length,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (err) {
+    console.error('[sync-now] error:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
+}
