@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
-import { getBestCard } from '@/lib/optimizer'
+import { getCardResults } from '@/lib/optimizer'
 
 export async function GET(req: NextRequest) {
   const category = req.nextUrl.searchParams.get('category')
@@ -15,6 +15,6 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const ranked = getBestCard(category, cards ?? [])
+  const ranked = getCardResults(category, cards ?? [])
   return NextResponse.json(ranked)
 }
