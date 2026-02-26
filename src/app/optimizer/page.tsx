@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { CardResult } from '@/lib/optimizer'
+import type { CardResult, OtherCategory } from '@/lib/optimizer'
 
 const CATEGORIES = [
   { key: 'flights', label: 'Flights' },
@@ -37,6 +37,11 @@ export default function OptimizerPage() {
   const formatEarning = (r: CardResult) => {
     if (r.earn_type === 'multiplier') return `${r.earn_rate}x ${r.card.reward_currency}`
     return `${r.earn_rate}% cashback`
+  }
+
+  const formatOther = (oc: OtherCategory) => {
+    if (oc.earn_type === 'multiplier') return `${oc.earn_rate}x`
+    return `${oc.earn_rate}%`
   }
 
   return (
@@ -84,23 +89,35 @@ export default function OptimizerPage() {
               key={r.card.id}
               className={i === 0 ? 'border-2 border-green-400 bg-green-50' : 'opacity-75'}
             >
-              <CardContent className="p-4 flex items-center justify-between gap-4">
-                <div className="space-y-0.5">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-4 mb-1">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-sm">{r.card.name}</p>
                     {i === 0 && <Badge className="text-xs bg-green-600">Best</Badge>}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    matched: {r.category_matched.replace(/_/g, ' ')}
-                    {r.notes && ` · ${r.notes}`}
-                  </p>
+                  <Badge
+                    variant={i === 0 ? 'default' : 'outline'}
+                    className="text-sm shrink-0"
+                  >
+                    {formatEarning(r)}
+                  </Badge>
                 </div>
-                <Badge
-                  variant={i === 0 ? 'default' : 'outline'}
-                  className="text-sm shrink-0"
-                >
-                  {formatEarning(r)}
-                </Badge>
+                <p className="text-xs text-muted-foreground mb-2">
+                  matched: {r.category_matched.replace(/_/g, ' ')}
+                  {r.notes && ` · ${r.notes}`}
+                </p>
+                {r.other_categories.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {r.other_categories.map((oc) => (
+                      <span
+                        key={oc.category_name}
+                        className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full"
+                      >
+                        {oc.category_name.replace(/_/g, ' ')}: {formatOther(oc)}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
