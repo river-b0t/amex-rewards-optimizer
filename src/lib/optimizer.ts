@@ -96,8 +96,9 @@ function resolveCategory(query: string, knownCategories: string[]): string {
   // 2. Substring match against category slugs (spaces = underscores)
   const match = knownCategories.find((cat) => {
     if (cat === 'everything_else') return false
-    const catReadable = cat.replace(/_/g, ' ')
-    return catReadable.includes(normalized) || normalized.includes(catReadable)
+    const catNorm = cat.replace(/_/g, ' ')
+    const queryNorm = normalized.replace(/_/g, ' ')
+    return catNorm.includes(queryNorm) || queryNorm.includes(catNorm)
   })
   if (match) return match
 
