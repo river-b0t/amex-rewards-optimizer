@@ -39,17 +39,17 @@ const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`
 
 export default function ImportPage() {
   const [stage, setStage] = useState<Stage>('idle')
-  const [csv, setCsv] = useState('')
   const [preview, setPreview] = useState<ParseResult | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const csvRef = useRef('')
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     const text = await file.text()
-    setCsv(text)
+    csvRef.current = text
     setStage('parsing')
     try {
       const res = await fetch('/api/transactions/parse', {
@@ -73,7 +73,7 @@ export default function ImportPage() {
       const res = await fetch('/api/transactions/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ csv }),
+        body: JSON.stringify({ csv: csvRef.current }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Import failed')
@@ -87,7 +87,7 @@ export default function ImportPage() {
 
   function reset() {
     setStage('idle')
-    setCsv('')
+    csvRef.current = ''
     setPreview(null)
     setResult(null)
     setError('')
@@ -142,8 +142,8 @@ export default function ImportPage() {
                   </span>
                 </div>
                 <div className="divide-y divide-gray-100">
-                  {newMatches.map((m, i) => (
-                    <div key={i} className="px-4 py-3 flex justify-between items-center">
+                  {newMatches.map((m) => (
+                    <div key={`${m.benefit_id}-${m.date}-${m.notes}`} className="px-4 py-3 flex justify-between items-center">
                       <div>
                         <p className="text-sm font-medium text-gray-900">{m.benefit_name}</p>
                         <p className="text-xs text-gray-400">{m.date} · {m.notes}</p>
@@ -163,8 +163,8 @@ export default function ImportPage() {
                   </span>
                 </div>
                 <div className="divide-y divide-amber-100">
-                  {dupMatches.map((m, i) => (
-                    <div key={i} className="px-4 py-3 flex justify-between items-center opacity-60">
+                  {dupMatches.map((m) => (
+                    <div key={`${m.benefit_id}-${m.date}-${m.notes}`} className="px-4 py-3 flex justify-between items-center opacity-60">
                       <div>
                         <p className="text-sm font-medium text-gray-900">{m.benefit_name}</p>
                         <p className="text-xs text-gray-400">{m.date} · {m.notes}</p>
@@ -184,8 +184,8 @@ export default function ImportPage() {
                   </span>
                 </div>
                 <div className="divide-y divide-green-100">
-                  {preview.offer_matches.map((m, i) => (
-                    <div key={i} className="px-4 py-3 flex justify-between items-center">
+                  {preview.offer_matches.map((m) => (
+                    <div key={m.enrollment_id} className="px-4 py-3 flex justify-between items-center">
                       <div>
                         <p className="text-sm font-medium text-gray-900">{m.merchant}</p>
                         <p className="text-xs text-gray-400">
