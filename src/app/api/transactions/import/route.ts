@@ -4,7 +4,8 @@ import { parseAmexCSV, matchToBenefit, matchToOffers, parseAmexDate } from '@/li
 import { getPeriodKey, ResetPeriod } from '@/lib/benefits'
 
 export async function POST(req: NextRequest) {
-  const { csv } = await req.json()
+  const body = await req.json().catch(() => ({}))
+  const { csv } = body as { csv?: string }
   if (!csv) return NextResponse.json({ error: 'csv required' }, { status: 400 })
 
   const transactions = parseAmexCSV(csv)
