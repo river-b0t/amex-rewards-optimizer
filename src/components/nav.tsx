@@ -10,6 +10,7 @@ export function Nav() {
         <Link href="/benefits" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Benefits</Link>
         <Link href="/optimizer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Optimizer</Link>
         <Link href="/offers" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Offers</Link>
+        <Link href="/import" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Import</Link>
         <div className="ml-auto"><LogoutButton /></div>
       </div>
     </nav>
