@@ -66,19 +66,22 @@ export function BenefitCard({ benefit: initial }: Props) {
   }
 
   async function logPartialUsage() {
-    const dollars = parseFloat(partialInput)
-    if (!dollars || dollars <= 0) return
-    const cents = Math.min(Math.round(dollars * 100), benefit.remaining_cents)
+    const dollarAmount = parseFloat(partialInput)
+    if (!dollarAmount || dollarAmount <= 0) return
+    const cents = Math.min(Math.round(dollarAmount * 100), benefit.remaining_cents)
     setPartialLoading(true)
-    await fetch('/api/benefits/usage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ benefit_id: benefit.id, amount_used_cents: cents }),
-    })
-    setUsedCents((prev) => Math.min(prev + cents, initial.amount_cents))
-    setPartialInput('')
-    setShowPartial(false)
-    setPartialLoading(false)
+    try {
+      await fetch('/api/benefits/usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benefit_id: benefit.id, amount_used_cents: cents }),
+      })
+      setUsedCents((prev) => Math.min(prev + cents, initial.amount_cents))
+      setPartialInput('')
+      setShowPartial(false)
+    } finally {
+      setPartialLoading(false)
+    }
   }
 
   async function toggleEnrolled() {
