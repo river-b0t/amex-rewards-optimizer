@@ -5,6 +5,7 @@ import type { ResetPeriod } from '@/lib/benefits'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { ExpiringOffersPanel } from '@/components/dashboard/ExpiringOffersPanel'
 import { BenefitsSummaryPanel } from '@/components/dashboard/BenefitsSummaryPanel'
+import { BudgetSyncButton } from '@/components/dashboard/BudgetSyncButton'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
@@ -67,7 +68,7 @@ export default async function DashboardPage() {
 
   const { data: rawEnrolledExpiring } = await supabase
     .from('enrolled_offers')
-    .select('id, amex_offers!inner(merchant, reward_amount_cents, spend_min_cents, expiration_date, reward_type)')
+    .select('id, spent_amount_cents, amex_offers!inner(merchant, reward_amount_cents, spend_min_cents, expiration_date, reward_type)')
     .eq('threshold_met', false)
     .gte('amex_offers.expiration_date', today)
     .lte('amex_offers.expiration_date', in30)
@@ -77,6 +78,7 @@ export default async function DashboardPage() {
     const o = Array.isArray(row.amex_offers) ? row.amex_offers[0] : row.amex_offers
     return {
       id: row.id as string,
+      spent_amount_cents: (row.spent_amount_cents as number | null) ?? 0,
       merchant: (o as { merchant: string }).merchant,
       reward_amount_cents: (o as { reward_amount_cents: number | null }).reward_amount_cents,
       spend_min_cents: (o as { spend_min_cents: number | null }).spend_min_cents,
@@ -146,11 +148,24 @@ export default async function DashboardPage() {
 
   const valueCapturedYTDCents = benefitYTDCents + offersYTDCents
 
+  const { data: lastSyncRow } = await supabase
+    .from('benefit_usage')
+    .select('created_at')
+    .eq('source', 'budget_sync')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const lastBudgetSync = lastSyncRow?.created_at ?? null
+
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-6 space-y-6">
-      <div>
-        <h1 className="text-[20px] font-semibold text-gray-900 tracking-tight">Dashboard</h1>
-        <p className="text-[13px] text-gray-400 mt-0.5">Amex Platinum — rewards at a glance</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[20px] font-semibold text-gray-900 tracking-tight">Dashboard</h1>
+          <p className="text-[13px] text-gray-400 mt-0.5">Amex Platinum — rewards at a glance</p>
+        </div>
+        <BudgetSyncButton lastSyncedAt={lastBudgetSync} />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Enrolled Offers" value={(enrolledOffersCount ?? 0).toString()}

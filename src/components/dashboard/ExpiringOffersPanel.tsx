@@ -3,6 +3,18 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+function SpendProgress({ spentCents, minCents }: { spentCents: number; minCents: number | null }) {
+  if (!minCents) return <span className="text-[11px] text-gray-400">No min</span>
+  const spent = spentCents / 100
+  const min = minCents / 100
+  const done = spentCents >= minCents
+  return (
+    <span className={`text-[11px] tabular-nums font-medium ${done ? 'text-green-600' : 'text-amber-600'}`}>
+      ${spent % 1 === 0 ? spent.toFixed(0) : spent.toFixed(2)} / ${min % 1 === 0 ? min.toFixed(0) : min.toFixed(2)}
+    </span>
+  )
+}
+
 type ExpiringOffer = {
   id: string
   merchant: string
@@ -10,6 +22,7 @@ type ExpiringOffer = {
   spend_min_cents: number | null
   expiration_date: string | null
   reward_type: string
+  spent_amount_cents?: number
 }
 
 function formatReward(offer: ExpiringOffer): string {
@@ -156,9 +169,6 @@ export function ExpiringOffersPanel({
 
           {enrolledOffers.map((offer) => {
             const days = offer.expiration_date ? daysUntil(offer.expiration_date) : null
-            const minSpendText = offer.spend_min_cents
-              ? `$${Math.round(offer.spend_min_cents / 100)} min · untracked`
-              : 'No min'
             return (
               <div
                 key={offer.id}
@@ -171,7 +181,10 @@ export function ExpiringOffersPanel({
                   {days !== null ? `${days}d` : '—'}
                 </p>
                 <div className="flex justify-end">
-                  <span className="text-[11px] text-gray-400 text-right leading-tight">{minSpendText}</span>
+                  <SpendProgress
+                    spentCents={offer.spent_amount_cents ?? 0}
+                    minCents={offer.spend_min_cents}
+                  />
                 </div>
               </div>
             )

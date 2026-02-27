@@ -10,6 +10,7 @@
     "scrape": "npx tsx scripts/test-scraper.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "@supabase/supabase-js": "^2.97.0",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
