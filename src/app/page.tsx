@@ -85,6 +85,10 @@ export default async function DashboardPage() {
     }
   })
 
+  const enrolledPendingIn14d = enrolledExpiringOffers.filter(
+    (o) => o.expiration_date && o.expiration_date <= in14
+  ).length
+
   const { data: benefits } = await supabase
     .from('amex_benefits')
     .select('*, benefit_usage(*)')
@@ -151,8 +155,15 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Enrolled Offers" value={(enrolledOffersCount ?? 0).toString()}
   accent="blue" />
-        <StatCard label="Expiring in 14d" value={unenrolledExpiringCount.toString()}
-  subtext="unenrolled" accent={unenrolledExpiringCount > 0 ? 'amber' : 'default'} />
+        <StatCard
+          label="Expiring in 14d"
+          value={(unenrolledExpiringCount + enrolledPendingIn14d).toString()}
+          subtext={[
+            unenrolledExpiringCount > 0 ? `${unenrolledExpiringCount} to enroll` : '',
+            enrolledPendingIn14d > 0 ? `${enrolledPendingIn14d} to complete` : '',
+          ].filter(Boolean).join(' · ') || undefined}
+          accent={enrolledPendingIn14d > 0 ? 'red' : unenrolledExpiringCount > 0 ? 'amber' : 'default'}
+        />
         <StatCard label="Benefits Remaining" value={formatDollars(benefitsRemainingCents)}
   subtext="this period" accent="green" />
         <StatCard label="Value Captured YTD" value={formatDollars(valueCapturedYTDCents)}

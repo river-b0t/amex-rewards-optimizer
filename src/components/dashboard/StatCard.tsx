@@ -7,12 +7,13 @@ export function StatCard({
   label: string
   value: string
   subtext?: string
-  accent?: 'green' | 'amber' | 'blue' | 'default'
+  accent?: 'green' | 'amber' | 'blue' | 'red' | 'default'
 }) {
   const accentColor = {
     green: 'border-l-green-500',
     amber: 'border-l-amber-500',
     blue: 'border-l-blue-500',
+    red: 'border-l-red-500',
     default: 'border-l-gray-300',
   }[accent ?? 'default']
 
