@@ -7,7 +7,7 @@ import { ExpiringOffersPanel } from '@/components/dashboard/ExpiringOffersPanel'
 import { BenefitsSummaryPanel } from '@/components/dashboard/BenefitsSummaryPanel'
 import { BudgetSyncButton } from '@/components/dashboard/BudgetSyncButton'
 import { SyncHistoryPanel } from '@/components/dashboard/SyncHistoryPanel'
-import type { SyncLogRow } from '@/components/dashboard/SyncHistoryPanel'
+import type { SyncLogRow } from '@/types/sync'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 

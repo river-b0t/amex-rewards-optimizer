@@ -1,15 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-
-export type SyncLogRow = {
-  id: string
-  type: 'offers_scrape' | 'budget_sync'
-  ran_at: string
-  records_processed: number
-  records_updated: number | null
-  error: string | null
-}
+import type { SyncLogRow } from '@/types/sync'
 
 function formatRelativeTime(isoString: string): string {
   const diffMs = Date.now() - new Date(isoString).getTime()
