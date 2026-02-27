@@ -6,6 +6,8 @@ import { StatCard } from '@/components/dashboard/StatCard'
 import { ExpiringOffersPanel } from '@/components/dashboard/ExpiringOffersPanel'
 import { BenefitsSummaryPanel } from '@/components/dashboard/BenefitsSummaryPanel'
 import { BudgetSyncButton } from '@/components/dashboard/BudgetSyncButton'
+import { SyncHistoryPanel } from '@/components/dashboard/SyncHistoryPanel'
+import type { SyncLogRow } from '@/components/dashboard/SyncHistoryPanel'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
@@ -158,6 +160,12 @@ export default async function DashboardPage() {
 
   const lastBudgetSync = lastSyncRow?.created_at ?? null
 
+  const { data: syncLogRows } = await supabase
+    .from('sync_log')
+    .select('id, type, ran_at, records_processed, records_updated, error')
+    .order('ran_at', { ascending: false })
+    .limit(20)
+
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -188,6 +196,7 @@ export default async function DashboardPage() {
         <ExpiringOffersPanel unenrolledOffers={expiringOffers} enrolledOffers={enrolledExpiringOffers} />
         <BenefitsSummaryPanel benefits={benefitsSummary} />
       </div>
+      <SyncHistoryPanel rows={(syncLogRows ?? []) as SyncLogRow[]} />
     </div>
   )
 }
