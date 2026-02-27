@@ -130,102 +130,157 @@ function OfferRow({ offer, onToggle }: { offer: Offer; onToggle: (id: string) =>
   }
 
   return (
-    <div
-      className={[
-        GRID,
-        'items-center h-[44px] border-b border-[#f3f4f6] transition-colors',
-        offer.is_enrolled
-          ? 'border-l-[3px] border-l-green-600 hover:bg-green-50/60'
-          : 'border-l-[3px] border-l-transparent hover:bg-[#f9fafb]',
-      ].join(' ')}
-    >
-      {/* Merchant + description */}
-      <div className="px-2 min-w-0">
-        <p className="text-[14px] font-semibold text-gray-900 truncate leading-snug">{offer.merchant}</p>
-        {offer.description && (
-          <p className="text-[11px] text-gray-400 truncate leading-snug">{offer.description}</p>
-        )}
-      </div>
+    <>
+      {/* ── Desktop row (md+) ── */}
+      <div
+        className={[
+          'hidden md:grid',
+          GRID,
+          'items-center h-[44px] border-b border-[#f3f4f6] transition-colors',
+          offer.is_enrolled
+            ? 'border-l-[3px] border-l-green-600 hover:bg-green-50/60'
+            : 'border-l-[3px] border-l-transparent hover:bg-[#f9fafb]',
+        ].join(' ')}
+      >
+        {/* Merchant + description */}
+        <div className="px-2 min-w-0">
+          <p className="text-[14px] font-semibold text-gray-900 truncate leading-snug">{offer.merchant}</p>
+          {offer.description && (
+            <p className="text-[11px] text-gray-400 truncate leading-snug">{offer.description}</p>
+          )}
+        </div>
 
-      {/* Category chip */}
-      <div className="flex justify-center px-1">
-        <span className="text-[10px] font-medium border border-gray-200 rounded px-1.5 py-0.5 text-gray-500 whitespace-nowrap leading-tight">
-          {category.emoji} {category.label}
-        </span>
-      </div>
+        {/* Category chip */}
+        <div className="flex justify-center px-1">
+          <span className="text-[10px] font-medium border border-gray-200 rounded px-1.5 py-0.5 text-gray-500 whitespace-nowrap leading-tight">
+            {category.emoji} {category.label}
+          </span>
+        </div>
 
-      {/* Reward */}
-      <div className="px-2 text-right">
-        <span
-          className={[
-            'font-[var(--font-geist-mono)] text-[13px] font-bold tabular-nums',
-            reward.isPoints ? 'text-blue-600' : 'text-green-700',
-          ].join(' ')}
-        >
-          {reward.text}
-        </span>
-      </div>
+        {/* Reward */}
+        <div className="px-2 text-right">
+          <span
+            className={[
+              'font-[var(--font-geist-mono)] text-[13px] font-bold tabular-nums',
+              reward.isPoints ? 'text-blue-600' : 'text-green-700',
+            ].join(' ')}
+          >
+            {reward.text}
+          </span>
+        </div>
 
-      {/* Min spend */}
-      <div className="px-2 text-right">
-        <span className="font-[var(--font-geist-mono)] text-[13px] text-gray-500 tabular-nums">
-          {formatMinSpend(offer.spend_min_cents)}
-        </span>
-      </div>
+        {/* Min spend */}
+        <div className="px-2 text-right">
+          <span className="font-[var(--font-geist-mono)] text-[13px] text-gray-500 tabular-nums">
+            {formatMinSpend(offer.spend_min_cents)}
+          </span>
+        </div>
 
-      {/* % Return */}
-      <div className="px-2 text-right">
-        {(() => {
-          const pct = computeReturn(offer)
-          return pct !== null ? (
-            <span className="font-[var(--font-geist-mono)] text-[13px] text-purple-700 font-semibold tabular-nums">
-              {pct}%
+        {/* % Return */}
+        <div className="px-2 text-right">
+          {(() => {
+            const pct = computeReturn(offer)
+            return pct !== null ? (
+              <span className="font-[var(--font-geist-mono)] text-[13px] text-purple-700 font-semibold tabular-nums">
+                {pct}%
+              </span>
+            ) : (
+              <span className="font-[var(--font-geist-mono)] text-[13px] text-gray-300 tabular-nums">—</span>
+            )
+          })()}
+        </div>
+
+        {/* Expires */}
+        <div className="px-2">
+          {expiry ? (
+            <span className={`text-[12px] tabular-nums ${expiry.urgent ? 'text-[#dc2626] font-bold' : 'text-gray-400'}`}>
+              {expiry.text}
             </span>
           ) : (
-            <span className="font-[var(--font-geist-mono)] text-[13px] text-gray-300 tabular-nums">—</span>
-          )
-        })()}
+            <span className="text-[12px] text-gray-300">—</span>
+          )}
+        </div>
+
+        {/* Status */}
+        <div className="flex justify-center">
+          {offer.is_enrolled ? (
+            <div className="flex items-center gap-1.5">
+              <div className="w-[6px] h-[6px] rounded-full bg-green-500 shrink-0" />
+              <span className="text-[11px] text-green-700 font-semibold">Enrolled</span>
+            </div>
+          ) : (
+            <span className="text-[12px] text-gray-300">—</span>
+          )}
+        </div>
+
+        {/* Action */}
+        <div className="px-2 flex justify-end">
+          <button
+            type="button"
+            onClick={handleToggle}
+            disabled={loading}
+            className={[
+              'text-[12px] font-semibold transition-colors disabled:opacity-30',
+              offer.is_enrolled
+                ? 'text-gray-400 hover:text-gray-700'
+                : 'text-blue-600 hover:text-blue-800',
+            ].join(' ')}
+          >
+            {loading ? '…' : offer.is_enrolled ? 'Unenroll' : 'Enroll'}
+          </button>
+        </div>
       </div>
 
-      {/* Expires */}
-      <div className="px-2">
-        {expiry ? (
-          <span className={`text-[12px] tabular-nums ${expiry.urgent ? 'text-[#dc2626] font-bold' : 'text-gray-400'}`}>
-            {expiry.text}
+      {/* ── Mobile card (<md) ── */}
+      <div
+        className={[
+          'md:hidden px-3 py-2.5 border-b border-[#f3f4f6] transition-colors',
+          offer.is_enrolled
+            ? 'border-l-[3px] border-l-green-600 bg-green-50/30'
+            : 'border-l-[3px] border-l-transparent',
+        ].join(' ')}
+      >
+        {/* Row 1: merchant + reward */}
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[14px] font-semibold text-gray-900 truncate flex-1">{offer.merchant}</p>
+          <span
+            className={[
+              'font-[var(--font-geist-mono)] text-[14px] font-bold tabular-nums shrink-0',
+              reward.isPoints ? 'text-blue-600' : 'text-green-700',
+            ].join(' ')}
+          >
+            {reward.text}
           </span>
-        ) : (
-          <span className="text-[12px] text-gray-300">—</span>
-        )}
+        </div>
+        {/* Row 2: expiry/status + action */}
+        <div className="flex items-center justify-between mt-0.5">
+          <span className="text-[12px] text-gray-400">
+            {expiry ? (
+              <span className={expiry.urgent ? 'text-red-600 font-semibold' : 'text-gray-400'}>
+                {expiry.text}
+              </span>
+            ) : offer.is_enrolled ? (
+              <span className="text-green-700 font-medium">Enrolled</span>
+            ) : (
+              '—'
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={handleToggle}
+            disabled={loading}
+            className={[
+              'text-[13px] font-semibold transition-colors disabled:opacity-30 py-1 pl-3',
+              offer.is_enrolled
+                ? 'text-gray-400 hover:text-gray-700'
+                : 'text-blue-600 hover:text-blue-800',
+            ].join(' ')}
+          >
+            {loading ? '…' : offer.is_enrolled ? 'Unenroll' : 'Enroll'}
+          </button>
+        </div>
       </div>
-
-      {/* Status */}
-      <div className="flex justify-center">
-        {offer.is_enrolled ? (
-          <div className="flex items-center gap-1.5">
-            <div className="w-[6px] h-[6px] rounded-full bg-green-500 shrink-0" />
-            <span className="text-[11px] text-green-700 font-semibold">Enrolled</span>
-          </div>
-        ) : (
-          <span className="text-[12px] text-gray-300">—</span>
-        )}
-      </div>
-
-      {/* Action */}
-      <div className="px-2 flex justify-end">
-        <button
-          onClick={handleToggle}
-          disabled={loading}
-          className={[
-            'text-[12px] font-semibold transition-colors disabled:opacity-30',
-            offer.is_enrolled
-              ? 'text-gray-400 hover:text-gray-700'
-              : 'text-blue-600 hover:text-blue-800',
-          ].join(' ')}
-        >
-          {loading ? '…' : offer.is_enrolled ? 'Unenroll' : 'Enroll'}
-        </button>
-      </div>
-    </div>
+    </>
   )
 }
 
@@ -359,7 +414,7 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
   const totalVisible = enrolled.length + visibleUnenrolled.length
 
   return (
-    <div className="max-w-[1100px] mx-auto px-6 py-6">
+    <div className="max-w-[1100px] mx-auto px-3 sm:px-6 py-6">
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-baseline gap-3">
@@ -379,7 +434,7 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
       </div>
 
       {/* ── Toolbar ── */}
-      <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-3">
         <div className="flex gap-0.5">
           <SortPill active={sortBy === 'reward'} onClick={() => setSortBy('reward')}>Reward ↓</SortPill>
           <SortPill active={sortBy === 'expiry'} onClick={() => setSortBy('expiry')}>Expiry ↑</SortPill>
@@ -426,7 +481,7 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
       {/* ── Table ── */}
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         {/* Column headers */}
-        <div className={`${GRID} border-b border-gray-200 bg-[#fafafa] border-l-[3px] border-l-transparent`}>
+        <div className={`hidden md:grid ${GRID} border-b border-gray-200 bg-[#fafafa] border-l-[3px] border-l-transparent`}>
           <ColHeader>Merchant</ColHeader>
           <ColHeader align="center">Category</ColHeader>
           <ColHeader align="right">Reward</ColHeader>
