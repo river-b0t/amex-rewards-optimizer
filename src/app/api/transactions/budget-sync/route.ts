@@ -106,6 +106,13 @@ async function handleSync() {
       if (!error) benefitsSynced++
     }
 
+    await supabase.from('sync_log').insert({
+      type: 'budget_sync',
+      records_processed: transactions.length,
+      records_updated: offersUpdated + benefitsSynced,
+      error: null,
+    })
+
     return NextResponse.json({
       transactions_processed: transactions.length,
       offers_updated: offersUpdated,
@@ -114,6 +121,14 @@ async function handleSync() {
       synced_at: syncedAt,
     })
   } catch (err) {
+    try {
+      const supabase = createServiceClient()
+      await supabase.from('sync_log').insert({
+        type: 'budget_sync',
+        records_processed: 0,
+        error: String(err),
+      })
+    } catch { /* ignore */ }
     console.error('[budget-sync] error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }

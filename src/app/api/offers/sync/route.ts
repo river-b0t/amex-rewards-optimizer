@@ -19,15 +19,19 @@ async function handleSync(req: NextRequest) {
 
   try {
     const offers = await scrapeFrequentMilerOffers()
+    const supabase = createServiceClient()
 
     if (offers.length === 0) {
+      await supabase.from('sync_log').insert({
+        type: 'offers_scrape',
+        records_processed: 0,
+        error: 'No offers scraped',
+      })
       return NextResponse.json(
         { synced: 0, message: 'No offers scraped', timestamp: new Date().toISOString() },
         { status: 200 }
       )
     }
-
-    const supabase = createServiceClient()
 
     const { error: upsertError } = await supabase.from('amex_offers').upsert(
       offers.map((o) => ({
@@ -52,12 +56,26 @@ async function handleSync(req: NextRequest) {
       .update({ active: false })
       .lt('expiration_date', today)
 
+    await supabase.from('sync_log').insert({
+      type: 'offers_scrape',
+      records_processed: offers.length,
+      error: null,
+    })
+
     return NextResponse.json({
       synced: offers.length,
       timestamp: new Date().toISOString(),
     })
   } catch (err) {
     console.error('[sync] error:', err)
+    try {
+      const supabase = createServiceClient()
+      await supabase.from('sync_log').insert({
+        type: 'offers_scrape',
+        records_processed: 0,
+        error: String(err),
+      })
+    } catch { /* ignore log failure */ }
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

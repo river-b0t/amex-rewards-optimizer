@@ -37,12 +37,26 @@ export async function POST() {
       .update({ active: false })
       .lt('expiration_date', today)
 
+    await supabase.from('sync_log').insert({
+      type: 'offers_scrape',
+      records_processed: offers.length,
+      error: null,
+    })
+
     return NextResponse.json({
       synced: offers.length,
       timestamp: new Date().toISOString(),
     })
   } catch (err) {
     console.error('[sync-now] error:', err)
+    try {
+      const supabase = createServiceClient()
+      await supabase.from('sync_log').insert({
+        type: 'offers_scrape',
+        records_processed: 0,
+        error: String(err),
+      })
+    } catch { /* ignore */ }
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
