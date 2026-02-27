@@ -1,5 +1,8 @@
+import type { Metadata } from 'next'
 import { OffersTable } from '@/components/offers/OfferCard'
 import type { Offer } from '@/components/offers/OfferCard'
+
+export const metadata: Metadata = { title: 'Offers' }
 
 async function getOffers(): Promise<Offer[]> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'

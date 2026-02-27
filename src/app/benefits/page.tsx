@@ -1,4 +1,7 @@
+import type { Metadata } from 'next'
 import { BenefitCard } from '@/components/benefits/BenefitCard'
+
+export const metadata: Metadata = { title: 'Benefits' }
 import type { Benefit } from '@/components/benefits/BenefitCard'
 import { CSVUpload } from '@/components/benefits/CSVUpload'
 

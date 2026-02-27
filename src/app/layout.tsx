@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Amex Rewards Optimizer",
-  description: "Track Amex Platinum benefits, enrolled offers, and maximize rewards.",
+  title: {
+    default: "Amex Rewards Optimizer",
+    template: "%s | Amex Rewards Optimizer",
+  },
+  description: "Track and maximize your Amex Platinum benefits, Amex Offers, and rewards.",
 };
 
 export default function RootLayout({
