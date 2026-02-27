@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 export type Offer = {
@@ -280,6 +280,7 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const router = useRouter()
   const [syncing, setSyncing] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   async function handleSync() {
     setSyncing(true)
@@ -317,12 +318,27 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
   const filtered = useMemo(() => {
     // Always drop expired
     let result = offers.filter((o) => !o.expiration_date || daysUntil(o.expiration_date) >= 0)
+
+    // Text search on merchant + description
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(
+        (o) =>
+          o.merchant.toLowerCase().includes(q) ||
+          (o.description?.toLowerCase().includes(q) ?? false)
+      )
+    }
+
     if (filterBy === 'enrolled') result = result.filter((o) => o.is_enrolled)
     else if (filterBy === 'expiring') result = result.filter((o) => isExpiringSoon(o.expiration_date))
     else if (filterBy !== 'all')
       result = result.filter((o) => getCategory(o.merchant).label === filterBy)
     return result
-  }, [offers, filterBy])
+  }, [offers, filterBy, searchQuery])
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [searchQuery])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -384,6 +400,26 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
             </FilterChip>
           ))}
         </div>
+      </div>
+
+      {/* ── Search ── */}
+      <div className="relative mb-3">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search merchants…"
+          className="w-full text-[13px] border border-gray-200 rounded-md px-3 py-2 pr-8 focus:outline-none focus:border-gray-400 placeholder-gray-300"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-[16px] leading-none"
+            aria-label="Clear search"
+          >
+            ×
+          </button>
+        )}
       </div>
 
       {/* ── Table ── */}
