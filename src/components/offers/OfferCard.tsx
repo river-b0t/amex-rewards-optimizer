@@ -413,6 +413,7 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
         />
         {searchQuery && (
           <button
+            type="button"
             onClick={() => setSearchQuery('')}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-[16px] leading-none"
             aria-label="Clear search"
