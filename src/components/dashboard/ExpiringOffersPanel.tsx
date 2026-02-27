@@ -120,7 +120,7 @@ export function ExpiringOffersPanel({
       </div>
 
       {/* Column headers */}
-      <div className="grid grid-cols-[1fr_80px_60px_80px_80px] px-4 py-2 border-b border-gray-100 bg-[#fafafa]">
+      <div className="hidden md:grid grid-cols-[1fr_80px_60px_80px_80px] px-4 py-2 border-b border-gray-100 bg-[#fafafa]">
         {(['Merchant', 'Reward', '% Ret', 'Expires', ''] as const).map((h, i) => (
           <div key={i} className={`text-[10px] font-medium uppercase tracking-[0.8px] text-gray-400 ${i > 0 ? 'text-right' : ''}`}>
             {h}
@@ -141,18 +141,31 @@ export function ExpiringOffersPanel({
       {unenrolledOffers.map((offer) => {
         const days = offer.expiration_date ? daysUntil(offer.expiration_date) : null
         return (
-          <div
-            key={offer.id}
-            className="grid grid-cols-[1fr_80px_60px_80px_80px] items-center px-4 h-[44px] border-b border-gray-50 last:border-b-0 hover:bg-gray-50/60 transition-colors"
-          >
-            <p className="text-[13px] font-semibold text-gray-900 truncate">{offer.merchant}</p>
-            <p className="text-[13px] font-bold text-green-700 tabular-nums text-right">{formatReward(offer)}</p>
-            <p className="text-[12px] text-gray-500 tabular-nums text-right">{formatReturn(offer)}</p>
-            <p className={`text-[12px] tabular-nums text-right ${days !== null && days <= 7 ? 'text-red-600 font-bold' : 'text-gray-400'}`}>
-              {days !== null ? `${days}d` : '—'}
-            </p>
-            <div className="flex justify-end">
-              <EnrollButton offer={offer} />
+          <div key={offer.id}>
+            {/* Desktop row */}
+            <div className="hidden md:grid grid-cols-[1fr_80px_60px_80px_80px] items-center px-4 h-[44px] border-b border-gray-50 last:border-b-0 hover:bg-gray-50/60 transition-colors">
+              <p className="text-[13px] font-semibold text-gray-900 truncate">{offer.merchant}</p>
+              <p className="text-[13px] font-bold text-green-700 tabular-nums text-right">{formatReward(offer)}</p>
+              <p className="text-[12px] text-gray-500 tabular-nums text-right">{formatReturn(offer)}</p>
+              <p className={`text-[12px] tabular-nums text-right ${days !== null && days <= 7 ? 'text-red-600 font-bold' : 'text-gray-400'}`}>
+                {days !== null ? `${days}d` : '—'}
+              </p>
+              <div className="flex justify-end">
+                <EnrollButton offer={offer} />
+              </div>
+            </div>
+            {/* Mobile card */}
+            <div className="md:hidden px-4 py-2.5 border-b border-gray-50 last:border-b-0 hover:bg-gray-50/60 transition-colors">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[14px] font-semibold text-gray-900 truncate flex-1">{offer.merchant}</p>
+                <span className="text-[14px] font-bold text-green-700 tabular-nums shrink-0">{formatReward(offer)}</span>
+              </div>
+              <div className="flex items-center justify-between mt-0.5">
+                <span className={`text-[12px] tabular-nums ${days !== null && days <= 7 ? 'text-red-600 font-semibold' : 'text-gray-400'}`}>
+                  {days !== null ? `${days}d left` : '—'}
+                </span>
+                <EnrollButton offer={offer} />
+              </div>
             </div>
           </div>
         )
@@ -170,21 +183,37 @@ export function ExpiringOffersPanel({
           {enrolledOffers.map((offer) => {
             const days = offer.expiration_date ? daysUntil(offer.expiration_date) : null
             return (
-              <div
-                key={offer.id}
-                className="grid grid-cols-[1fr_80px_60px_80px_80px] items-center px-4 h-[44px] border-b border-gray-50 last:border-b-0 hover:bg-amber-50/30 transition-colors border-l-[3px] border-l-amber-400"
-              >
-                <p className="text-[13px] font-semibold text-gray-900 truncate">{offer.merchant}</p>
-                <p className="text-[13px] font-bold text-green-700 tabular-nums text-right">{formatReward(offer)}</p>
-                <p className="text-[12px] text-gray-400 tabular-nums text-right">{formatReturn(offer)}</p>
-                <p className={`text-[12px] tabular-nums text-right ${days !== null && days <= 7 ? 'text-red-600 font-bold' : 'text-amber-600'}`}>
-                  {days !== null ? `${days}d` : '—'}
-                </p>
-                <div className="flex justify-end">
-                  <SpendProgress
-                    spentCents={offer.spent_amount_cents ?? 0}
-                    minCents={offer.spend_min_cents}
-                  />
+              <div key={offer.id}>
+                {/* Desktop row */}
+                <div className="hidden md:grid grid-cols-[1fr_80px_60px_80px_80px] items-center px-4 h-[44px] border-b border-gray-50 last:border-b-0 hover:bg-amber-50/30 transition-colors border-l-[3px] border-l-amber-400">
+                  <p className="text-[13px] font-semibold text-gray-900 truncate">{offer.merchant}</p>
+                  <p className="text-[13px] font-bold text-green-700 tabular-nums text-right">{formatReward(offer)}</p>
+                  <p className="text-[12px] text-gray-400 tabular-nums text-right">{formatReturn(offer)}</p>
+                  <p className={`text-[12px] tabular-nums text-right ${days !== null && days <= 7 ? 'text-red-600 font-bold' : 'text-amber-600'}`}>
+                    {days !== null ? `${days}d` : '—'}
+                  </p>
+                  <div className="flex justify-end">
+                    <SpendProgress
+                      spentCents={offer.spent_amount_cents ?? 0}
+                      minCents={offer.spend_min_cents}
+                    />
+                  </div>
+                </div>
+                {/* Mobile card */}
+                <div className="md:hidden px-4 py-2.5 border-b border-gray-50 last:border-b-0 border-l-[3px] border-l-amber-400 hover:bg-amber-50/30 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[14px] font-semibold text-gray-900 truncate flex-1">{offer.merchant}</p>
+                    <span className="text-[14px] font-bold text-green-700 tabular-nums shrink-0">{formatReward(offer)}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <span className={`text-[12px] tabular-nums ${days !== null && days <= 7 ? 'text-red-600 font-semibold' : 'text-amber-600'}`}>
+                      {days !== null ? `${days}d left` : '—'}
+                    </span>
+                    <SpendProgress
+                      spentCents={offer.spent_amount_cents ?? 0}
+                      minCents={offer.spend_min_cents}
+                    />
+                  </div>
                 </div>
               </div>
             )
