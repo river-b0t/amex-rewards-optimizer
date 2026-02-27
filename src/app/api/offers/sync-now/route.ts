@@ -32,6 +32,13 @@ export async function POST() {
     )
 
     if (upsertError) {
+      try {
+        await supabase.from('sync_log').insert({
+          type: 'offers_scrape',
+          records_processed: offers.length,
+          error: upsertError.message,
+        })
+      } catch { /* ignore */ }
       return NextResponse.json({ error: upsertError.message }, { status: 500 })
     }
 
