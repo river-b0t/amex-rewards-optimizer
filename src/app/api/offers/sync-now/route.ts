@@ -5,15 +5,19 @@ import { scrapeFrequentMilerOffers } from '@/lib/scraper'
 export async function POST() {
   try {
     const offers = await scrapeFrequentMilerOffers()
+    const supabase = createServiceClient()
 
     if (offers.length === 0) {
+      await supabase.from('sync_log').insert({
+        type: 'offers_scrape',
+        records_processed: 0,
+        error: 'No offers scraped',
+      })
       return NextResponse.json(
         { synced: 0, message: 'No offers scraped', timestamp: new Date().toISOString() },
         { status: 200 }
       )
     }
-
-    const supabase = createServiceClient()
 
     const { error: upsertError } = await supabase.from('amex_offers').upsert(
       offers.map((o) => ({
