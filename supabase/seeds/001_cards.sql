@@ -15,5 +15,5 @@ insert into card_categories (card_id, category_name, earn_rate, earn_type, notes
   ('22222222-2222-2222-2222-222222222222', 'grocery', 2, 'multiplier', null),
   ('22222222-2222-2222-2222-222222222222', 'everything_else', 1, 'multiplier', null),
   ('33333333-3333-3333-3333-333333333333', 'grocery', 5, 'percent', '5% Jan-Mar 2026. Cap $1,500/quarter'),
-  ('33333333-3333-3333-3333-333333333333', 'fitness_q1_2026', 5, 'percent', '5% Jan-Mar 2026. Cap $1,500/quarter'),
+  ('33333333-3333-3333-3333-333333333333', 'fitness', 5, 'percent', '5% Jan-Mar 2026. Cap $1,500/quarter'),
   ('33333333-3333-3333-3333-333333333333', 'everything_else', 1, 'percent', null);
