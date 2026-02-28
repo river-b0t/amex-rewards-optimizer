@@ -193,8 +193,8 @@ export default async function DashboardPage() {
   accent="default" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ExpiringOffersPanel unenrolledOffers={expiringOffers} enrolledOffers={enrolledExpiringOffers} />
         <BenefitsSummaryPanel benefits={benefitsSummary} />
+        <ExpiringOffersPanel unenrolledOffers={expiringOffers} enrolledOffers={enrolledExpiringOffers} />
       </div>
       <SyncHistoryPanel rows={(syncLogRows ?? []) as SyncLogRow[]} />
     </div>
