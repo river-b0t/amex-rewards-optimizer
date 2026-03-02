@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 export type Offer = {
@@ -14,10 +14,16 @@ export type Offer = {
   is_enrolled: boolean
 }
 
+type MerchantGroup = {
+  merchant: string
+  offers: Offer[]        // sorted by reward desc within group
+  bestOffer: Offer       // highest reward offer
+  earliestExpiry: string | null
+  hasEnrolled: boolean
+}
+
 type SortKey = 'reward' | 'expiry' | 'merchant' | 'return'
 type FilterKey = 'all' | 'enrolled' | 'expiring' | string
-
-const PAGE_SIZE = 50
 
 const CATEGORIES: Array<{ label: string; emoji: string; pattern: RegExp }> = [
   { label: 'Travel', emoji: '✈', pattern: /airline|hotel|marriott|hilton|hyatt|delta|united|american air|southwest|airbnb|hertz|avis|car rental|travel|resort|cruise|expedia|booking\.com/i },
@@ -88,11 +94,34 @@ function compareExpiry(a: Offer, b: Offer): number {
   return new Date(a.expiration_date).getTime() - new Date(b.expiration_date).getTime()
 }
 
-// ─── Grid column template ────────────────────────────────────────────────────
+function groupByMerchant(offers: Offer[]): MerchantGroup[] {
+  // Preserve the order of first occurrence (which reflects the active sort)
+  const map = new Map<string, Offer[]>()
+  for (const offer of offers) {
+    if (!map.has(offer.merchant)) map.set(offer.merchant, [])
+    map.get(offer.merchant)!.push(offer)
+  }
+  return [...map.entries()].map(([merchant, list]) => {
+    const sorted = [...list].sort((a, b) => (b.reward_amount_cents ?? 0) - (a.reward_amount_cents ?? 0))
+    const expiries = list
+      .map((o) => o.expiration_date)
+      .filter((d): d is string => d !== null)
+      .sort()
+    return {
+      merchant,
+      offers: sorted,
+      bestOffer: sorted[0],
+      earliestExpiry: expiries[0] ?? null,
+      hasEnrolled: list.some((o) => o.is_enrolled),
+    }
+  })
+}
+
+// ─── Grid column template ─────────────────────────────────────────────────────
 // Merchant(flex) | Category(80) | Reward(100) | MinSpend(90) | %Return(70) | Expires(110) | Status(80) | Action(100)
 const GRID = 'grid grid-cols-[minmax(160px,1fr)_80px_100px_90px_70px_110px_80px_100px]'
 
-// ─── Column header ───────────────────────────────────────────────────────────
+// ─── Column header ────────────────────────────────────────────────────────────
 function ColHeader({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' | 'center' }) {
   const a = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
   return (
@@ -102,7 +131,7 @@ function ColHeader({ children, align = 'left' }: { children: React.ReactNode; al
   )
 }
 
-// ─── Group divider row ────────────────────────────────────────────────────────
+// ─── Section divider row ──────────────────────────────────────────────────────
 function GroupRow({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-1.5 px-3 select-none bg-gray-50/60">
@@ -114,7 +143,15 @@ function GroupRow({ label }: { label: string }) {
 }
 
 // ─── Individual offer row ─────────────────────────────────────────────────────
-function OfferRow({ offer, onToggle }: { offer: Offer; onToggle: (id: string) => Promise<void> }) {
+function OfferRow({
+  offer,
+  onToggle,
+  indent = false,
+}: {
+  offer: Offer
+  onToggle: (id: string) => Promise<void>
+  indent?: boolean
+}) {
   const [loading, setLoading] = useState(false)
   const category = getCategory(offer.merchant)
   const reward = formatReward(offer)
@@ -140,10 +177,11 @@ function OfferRow({ offer, onToggle }: { offer: Offer; onToggle: (id: string) =>
           offer.is_enrolled
             ? 'border-l-[3px] border-l-green-600 hover:bg-green-50/60'
             : 'border-l-[3px] border-l-transparent hover:bg-[#f9fafb]',
+          indent ? 'bg-gray-50/40' : '',
         ].join(' ')}
       >
         {/* Merchant + description */}
-        <div className="px-2 min-w-0">
+        <div className={`min-w-0 ${indent ? 'px-2 pl-10' : 'px-2'}`}>
           <p className="text-[14px] font-semibold text-gray-900 truncate leading-snug">{offer.merchant}</p>
           {offer.description && (
             <p className="text-[11px] text-gray-400 truncate leading-snug">{offer.description}</p>
@@ -238,9 +276,9 @@ function OfferRow({ offer, onToggle }: { offer: Offer; onToggle: (id: string) =>
           offer.is_enrolled
             ? 'border-l-[3px] border-l-green-600 bg-green-50/30'
             : 'border-l-[3px] border-l-transparent',
+          indent ? 'pl-7 bg-gray-50/40' : '',
         ].join(' ')}
       >
-        {/* Row 1: merchant + reward */}
         <div className="flex items-center justify-between gap-2">
           <p className="text-[14px] font-semibold text-gray-900 truncate flex-1">{offer.merchant}</p>
           <span
@@ -252,7 +290,6 @@ function OfferRow({ offer, onToggle }: { offer: Offer; onToggle: (id: string) =>
             {reward.text}
           </span>
         </div>
-        {/* Row 2: expiry/status + action */}
         <div className="flex items-center justify-between mt-0.5">
           <span className="text-[12px] text-gray-400">
             {expiry ? (
@@ -280,6 +317,182 @@ function OfferRow({ offer, onToggle }: { offer: Offer; onToggle: (id: string) =>
           </button>
         </div>
       </div>
+    </>
+  )
+}
+
+// ─── Merchant group row (collapsible) ─────────────────────────────────────────
+function MerchantGroupRow({
+  group,
+  expanded,
+  onToggle,
+  onToggleEnroll,
+}: {
+  group: MerchantGroup
+  expanded: boolean
+  onToggle: () => void
+  onToggleEnroll: (id: string) => Promise<void>
+}) {
+  const { bestOffer, offers, hasEnrolled, earliestExpiry } = group
+  const category = getCategory(bestOffer.merchant)
+  const reward = formatReward(bestOffer)
+  const expiry = formatExpiry(earliestExpiry)
+  const extra = offers.length - 1
+
+  return (
+    <>
+      {/* ── Desktop group header (md+) ── */}
+      <div
+        onClick={onToggle}
+        className={[
+          'hidden md:grid cursor-pointer select-none',
+          GRID,
+          'items-center h-[44px] border-b border-[#f3f4f6] transition-colors',
+          hasEnrolled
+            ? 'border-l-[3px] border-l-green-600 bg-green-50/10 hover:bg-green-50/40'
+            : 'border-l-[3px] border-l-transparent hover:bg-[#f9fafb]',
+        ].join(' ')}
+      >
+        {/* Merchant + chevron + count badge */}
+        <div className="px-2 min-w-0 flex items-center gap-2">
+          <span
+            className={[
+              'text-[9px] text-gray-400 transition-transform duration-150 inline-block shrink-0',
+              expanded ? 'rotate-90' : '',
+            ].join(' ')}
+            style={{ lineHeight: 1 }}
+          >
+            ▶
+          </span>
+          <p className="text-[14px] font-semibold text-gray-900 truncate leading-snug">{group.merchant}</p>
+          {extra > 0 && (
+            <span className="text-[10px] font-medium text-gray-400 shrink-0 bg-gray-100 rounded px-1.5 py-0.5 leading-none">
+              +{extra}
+            </span>
+          )}
+        </div>
+
+        {/* Category chip */}
+        <div className="flex justify-center px-1">
+          <span className="text-[10px] font-medium border border-gray-200 rounded px-1.5 py-0.5 text-gray-500 whitespace-nowrap leading-tight">
+            {category.emoji} {category.label}
+          </span>
+        </div>
+
+        {/* Best reward */}
+        <div className="px-2 text-right">
+          <span
+            className={[
+              'font-[var(--font-geist-mono)] text-[13px] font-bold tabular-nums',
+              reward.isPoints ? 'text-blue-600' : 'text-green-700',
+            ].join(' ')}
+          >
+            {reward.text}
+          </span>
+        </div>
+
+        {/* Best min spend */}
+        <div className="px-2 text-right">
+          <span className="font-[var(--font-geist-mono)] text-[13px] text-gray-500 tabular-nums">
+            {formatMinSpend(bestOffer.spend_min_cents)}
+          </span>
+        </div>
+
+        {/* % Return of best offer */}
+        <div className="px-2 text-right">
+          {(() => {
+            const pct = computeReturn(bestOffer)
+            return pct !== null ? (
+              <span className="font-[var(--font-geist-mono)] text-[13px] text-purple-700 font-semibold tabular-nums">
+                {pct}%
+              </span>
+            ) : (
+              <span className="font-[var(--font-geist-mono)] text-[13px] text-gray-300 tabular-nums">—</span>
+            )
+          })()}
+        </div>
+
+        {/* Earliest expiry across all offers in group */}
+        <div className="px-2">
+          {expiry ? (
+            <span className={`text-[12px] tabular-nums ${expiry.urgent ? 'text-[#dc2626] font-bold' : 'text-gray-400'}`}>
+              {expiry.text}
+            </span>
+          ) : (
+            <span className="text-[12px] text-gray-300">—</span>
+          )}
+        </div>
+
+        {/* Enrolled status */}
+        <div className="flex justify-center">
+          {hasEnrolled ? (
+            <div className="flex items-center gap-1.5">
+              <div className="w-[6px] h-[6px] rounded-full bg-green-500 shrink-0" />
+              <span className="text-[11px] text-green-700 font-semibold">Enrolled</span>
+            </div>
+          ) : (
+            <span className="text-[12px] text-gray-300">—</span>
+          )}
+        </div>
+
+        {/* Offer count */}
+        <div className="px-2 flex justify-end">
+          <span className="text-[12px] text-gray-400 tabular-nums">
+            {offers.length} {offers.length === 1 ? 'offer' : 'offers'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Mobile group header (<md) ── */}
+      <div
+        onClick={onToggle}
+        className={[
+          'md:hidden px-3 py-2.5 border-b border-[#f3f4f6] cursor-pointer select-none transition-colors',
+          hasEnrolled
+            ? 'border-l-[3px] border-l-green-600 bg-green-50/20'
+            : 'border-l-[3px] border-l-transparent',
+        ].join(' ')}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className={[
+                'text-[9px] text-gray-400 shrink-0 inline-block transition-transform duration-150',
+                expanded ? 'rotate-90' : '',
+              ].join(' ')}
+              style={{ lineHeight: 1 }}
+            >
+              ▶
+            </span>
+            <p className="text-[14px] font-semibold text-gray-900 truncate">{group.merchant}</p>
+            {extra > 0 && (
+              <span className="text-[10px] text-gray-400 shrink-0 bg-gray-100 rounded px-1.5 py-0.5 leading-none">
+                +{extra}
+              </span>
+            )}
+          </div>
+          <span
+            className={[
+              'font-[var(--font-geist-mono)] text-[14px] font-bold tabular-nums shrink-0',
+              reward.isPoints ? 'text-blue-600' : 'text-green-700',
+            ].join(' ')}
+          >
+            {reward.text}
+          </span>
+        </div>
+        {expiry && (
+          <div className="mt-0.5 ml-5">
+            <span className={`text-[12px] tabular-nums ${expiry.urgent ? 'text-red-600 font-semibold' : 'text-gray-400'}`}>
+              {expiry.text}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Expanded sub-rows ── */}
+      {expanded && offers.map((offer) => (
+        <OfferRow key={offer.id} offer={offer} onToggle={onToggleEnroll} indent />
+      ))}
     </>
   )
 }
@@ -332,10 +545,14 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
   const [offers, setOffers] = useState(initial)
   const [sortBy, setSortBy] = useState<SortKey>('reward')
   const [filterBy, setFilterBy] = useState<FilterKey>('all')
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const router = useRouter()
   const [syncing, setSyncing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Initialize expanded groups with merchants that have enrolled offers
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    () => new Set(initial.filter((o) => o.is_enrolled).map((o) => o.merchant))
+  )
 
   async function handleSync() {
     setSyncing(true)
@@ -357,7 +574,12 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
     setOffers((prev) =>
       prev.map((o) => (o.id === offerId ? { ...o, is_enrolled: data.enrolled } : o))
     )
-  }, [])
+    // Auto-expand group when enrolling so the user can see it
+    if (data.enrolled) {
+      const offer = offers.find((o) => o.id === offerId)
+      if (offer) setExpandedGroups((prev) => new Set([...prev, offer.merchant]))
+    }
+  }, [offers])
 
   const uniqueCategories = useMemo(() => {
     const cats = new Set(offers.map((o) => getCategory(o.merchant).label).filter((c) => c !== 'Other'))
@@ -371,10 +593,7 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
   )
 
   const filtered = useMemo(() => {
-    // Always drop expired
     let result = offers.filter((o) => !o.expiration_date || daysUntil(o.expiration_date) >= 0)
-
-    // Text search on merchant + description
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       result = result.filter(
@@ -383,17 +602,12 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
           (o.description?.toLowerCase().includes(q) ?? false)
       )
     }
-
     if (filterBy === 'enrolled') result = result.filter((o) => o.is_enrolled)
     else if (filterBy === 'expiring') result = result.filter((o) => isExpiringSoon(o.expiration_date))
     else if (filterBy !== 'all')
       result = result.filter((o) => getCategory(o.merchant).label === filterBy)
     return result
   }, [offers, filterBy, searchQuery])
-
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
-  }, [searchQuery])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -408,10 +622,25 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
     })
   }, [filtered, sortBy])
 
-  const enrolled = sorted.filter((o) => o.is_enrolled)
-  const unenrolled = sorted.filter((o) => !o.is_enrolled)
-  const visibleUnenrolled = unenrolled.slice(0, visibleCount)
-  const totalVisible = enrolled.length + visibleUnenrolled.length
+  // Enrolled filter → flat list. All other filters → grouped view.
+  const useFlat = filterBy === 'enrolled'
+
+  const groups = useMemo(() => {
+    if (useFlat) return null
+    return groupByMerchant(sorted)
+  }, [sorted, useFlat])
+
+  const enrolledGroups = useMemo(() => groups?.filter((g) => g.hasEnrolled) ?? [], [groups])
+  const regularGroups = useMemo(() => groups?.filter((g) => !g.hasEnrolled) ?? [], [groups])
+
+  function toggleGroup(merchant: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(merchant)) next.delete(merchant)
+      else next.add(merchant)
+      return next
+    })
+  }
 
   return (
     <div className="max-w-[1100px] mx-auto px-3 sm:px-6 py-6">
@@ -420,7 +649,10 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
         <div className="flex items-baseline gap-3">
           <h1 className="text-[20px] font-semibold text-gray-900 tracking-tight">Amex Offers</h1>
           <span className="text-[13px] text-gray-400">
-            {offers.length.toLocaleString()} offers · {enrolledCount} enrolled
+            {!useFlat && groups
+              ? `${groups.length.toLocaleString()} merchants · ${filtered.length.toLocaleString()} offers`
+              : `${filtered.length.toLocaleString()} offers`}
+            {` · ${enrolledCount} enrolled`}
             {lastSyncedAt && ` · synced ${formatRelativeTime(lastSyncedAt)}`}
           </span>
         </div>
@@ -489,50 +721,67 @@ export function OffersTable({ offers: initial, lastSyncedAt }: { offers: Offer[]
           <ColHeader align="right">% Return</ColHeader>
           <ColHeader>Expires</ColHeader>
           <ColHeader align="center">Status</ColHeader>
-          <ColHeader align="right">Action</ColHeader>
+          <ColHeader align="right">{useFlat ? 'Action' : 'Offers'}</ColHeader>
         </div>
 
-        {/* Enrolled group */}
-        {enrolled.length > 0 && (
-          <>
-            <GroupRow label={`Enrolled (${enrolled.length})`} />
-            {enrolled.map((o) => (
-              <OfferRow key={o.id} offer={o} onToggle={toggleEnroll} />
-            ))}
-          </>
-        )}
+        {useFlat ? (
+          // ── Flat enrolled list ──
+          sorted.length === 0 ? (
+            <div className="py-16 text-center text-[13px] text-gray-400">No enrolled offers.</div>
+          ) : (
+            sorted.map((o) => <OfferRow key={o.id} offer={o} onToggle={toggleEnroll} />)
+          )
+        ) : (
+          // ── Grouped view ──
+          !groups || groups.length === 0 ? (
+            <div className="py-16 text-center text-[13px] text-gray-400">No offers match this filter.</div>
+          ) : (
+            <>
+              {/* Enrolled merchants pinned at top */}
+              {enrolledGroups.length > 0 && (
+                <>
+                  <GroupRow
+                    label={`Enrolled · ${enrolledGroups.length} ${enrolledGroups.length === 1 ? 'merchant' : 'merchants'}`}
+                  />
+                  {enrolledGroups.map((group) => (
+                    <MerchantGroupRow
+                      key={group.merchant}
+                      group={group}
+                      expanded={expandedGroups.has(group.merchant)}
+                      onToggle={() => toggleGroup(group.merchant)}
+                      onToggleEnroll={toggleEnroll}
+                    />
+                  ))}
+                </>
+              )}
 
-        {/* All offers group */}
-        {visibleUnenrolled.length > 0 && (
-          <>
-            <GroupRow label={`All Offers (${unenrolled.length})`} />
-            {visibleUnenrolled.map((o) => (
-              <OfferRow key={o.id} offer={o} onToggle={toggleEnroll} />
-            ))}
-          </>
-        )}
-
-        {sorted.length === 0 && (
-          <div className="py-16 text-center text-[13px] text-gray-400">
-            No offers match this filter.
-          </div>
+              {/* All other merchants */}
+              {regularGroups.length > 0 && (
+                <>
+                  {enrolledGroups.length > 0 && (
+                    <GroupRow label={`All · ${regularGroups.length} merchants`} />
+                  )}
+                  {regularGroups.map((group) => (
+                    <MerchantGroupRow
+                      key={group.merchant}
+                      group={group}
+                      expanded={expandedGroups.has(group.merchant)}
+                      onToggle={() => toggleGroup(group.merchant)}
+                      onToggleEnroll={toggleEnroll}
+                    />
+                  ))}
+                </>
+              )}
+            </>
+          )
         )}
       </div>
 
       {/* ── Footer ── */}
       <div className="mt-3 text-center text-[12px] text-gray-400">
-        Showing {totalVisible.toLocaleString()} of {sorted.length.toLocaleString()} offers
-        {visibleUnenrolled.length < unenrolled.length && (
-          <>
-            {' · '}
-            <button
-              onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-              className="text-blue-500 hover:text-blue-700 font-medium"
-            >
-              Load more
-            </button>
-          </>
-        )}
+        {useFlat
+          ? `${sorted.length.toLocaleString()} enrolled offers`
+          : `${groups?.length.toLocaleString()} merchants · ${filtered.length.toLocaleString()} offers total`}
       </div>
     </div>
   )
